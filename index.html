@@ -6,203 +6,224 @@
     <title id="page-title">منصة الامتحانات الذكية - تسجيل الدخول</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900 font-sans min-h-screen flex items-center justify-center text-white p-6">
+<body class="bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900 min-h-screen flex items-center justify-center p-4 relative">
 
-    <div class="max-w-md w-full bg-white/10 backdrop-blur-md border border-white/20 p-8 rounded-2xl shadow-2xl relative">
-        
-        <!-- زر تغيير اللغة -->
-        <button onclick="toggleLanguage()" class="absolute top-4 left-4 bg-white/10 hover:bg-white/20 text-xs px-3 py-1.5 rounded-lg border border-white/20 transition">
-            <span id="lang-btn-text">English</span>
-        </button>
+    <!-- زرار تبديل اللغة -->
+    <div class="absolute top-4 left-4">
+        <button onclick="toggleLanguage()" id="lang-btn" class="bg-purple-600/50 hover:bg-purple-600 text-xs px-3 py-1.5 rounded-lg border border-white/20 transition font-bold text-white">English</button>
+    </div>
 
+    <div class="max-w-md w-full bg-white/10 backdrop-blur-md border border-white/20 p-8 rounded-2xl shadow-2xl">
         <div class="text-center mb-6">
-            <h1 id="main-heading" class="text-2xl font-bold text-purple-400">منصة الامتحانات الذكية</h1>
-            <p id="sub-heading" class="text-gray-300 text-sm mt-1">نظام تصحيح ذكي ومتابعة فورية</p>
+            <h1 id="main-title" class="text-2xl font-bold text-purple-300">منصة الامتحانات الذكية</h1>
+            <p id="main-subtitle" class="text-gray-300 text-sm mt-1">نظام تصحيح ذكي ومتابعة فورية</p>
         </div>
 
-        <!-- أزرار التبديل بين تسجيل الدخول وإنشاء الحساب -->
-        <div class="flex bg-black/40 p-1.5 rounded-xl mb-6 border border-white/10">
-            <button id="tab-login" onclick="switchTab('login')" class="flex-1 py-2 text-sm font-semibold rounded-lg bg-purple-600 text-white transition">تسجيل الدخول</button>
-            <button id="tab-signup" onclick="switchTab('signup')" class="flex-1 py-2 text-sm font-semibold rounded-lg text-gray-400 hover:text-white transition">إنشاء حساب</button>
+        <!-- تبديل الأزرار بين تسجيل الدخول وإنشاء الحساب -->
+        <div class="flex bg-black/30 p-1 rounded-xl mb-6">
+            <button id="tab-login" onclick="switchTab('login')" class="flex-1 py-2 text-sm font-bold rounded-lg transition bg-purple-600 text-white">تسجيل الدخول</button>
+            <button id="tab-signup" onclick="switchTab('signup')" class="flex-1 py-2 text-sm font-bold rounded-lg transition text-gray-400">إنشاء حساب</button>
         </div>
 
-        <!-- نموذج تسجيل الدخول -->
-        <div id="login-form" class="space-y-4">
+        <!-- نموذج تسجيل الدخول (الاسم + الـ ID + الباسورد) -->
+        <div id="form-login" class="space-y-4">
             <div>
-                <label id="l-name-lbl" class="block text-gray-300 text-sm font-semibold mb-1">الاسم الكامل</label>
-                <input type="text" id="login-name" class="w-full p-3 bg-black/40 border border-gray-600 rounded-xl text-white focus:ring-2 focus:ring-purple-500" placeholder="أدخل اسمك...">
+                <label id="lbl-login-name" class="block text-sm text-gray-300 mb-1">الاسم الكامل:</label>
+                <input type="text" id="login_name" class="w-full bg-black/30 border border-white/20 rounded-lg p-3 text-white focus:outline-none focus:border-purple-500" placeholder="أدخل اسمك...">
             </div>
             <div>
-                <label id="l-id-lbl" class="block text-gray-300 text-sm font-semibold mb-1">رقم الـ ID (3 أرقام)</label>
-                <input type="text" id="login-id" maxlength="3" class="w-full p-3 bg-black/40 border border-gray-600 rounded-xl text-white focus:ring-2 focus:ring-purple-500 font-mono tracking-widest text-center text-lg" placeholder="123">
+                <label id="lbl-login-id" class="block text-sm text-gray-300 mb-1">معرّف الطالب (ID):</label>
+                <input type="text" id="login_id" class="w-full bg-black/30 border border-white/20 rounded-lg p-3 text-white focus:outline-none focus:border-purple-500" placeholder="مثال: 123">
             </div>
-            <button onclick="handleLogin()" id="l-btn" class="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition">تسجيل الدخول</button>
+            <div>
+                <label id="lbl-login-pass" class="block text-sm text-gray-300 mb-1">كلمة المرور:</label>
+                <input type="password" id="login_pass" class="w-full bg-black/30 border border-white/20 rounded-lg p-3 text-white focus:outline-none focus:border-purple-500" placeholder="كلمة المرور السرية">
+            </div>
+            <button onclick="handleLogin()" id="btn-login-submit" class="w-full bg-purple-600 hover:bg-purple-500 transition py-3 rounded-lg font-bold shadow-lg text-white">تسجيل الدخول</button>
         </div>
 
-        <!-- نموذج إنشاء حساب (مخفي افتراضياً ولا يظهر إلا عند الضغط على تبويب إنشاء حساب) -->
-        <div id="signup-form" class="space-y-4 hidden">
+        <!-- نموذج إنشاء الحساب -->
+        <div id="form-signup" class="space-y-4 hidden">
             <div>
-                <label id="s-name-lbl" class="block text-gray-300 text-sm font-semibold mb-1">الاسم الكامل</label>
-                <input type="text" id="reg-name" class="w-full p-3 bg-black/40 border border-gray-600 rounded-xl text-white focus:ring-2 focus:ring-purple-500" placeholder="أدخل اسمك الكامل...">
+                <label id="lbl-su-name" class="block text-sm text-gray-300 mb-1">الاسم الكامل:</label>
+                <input type="text" id="signup_name" class="w-full bg-black/30 border border-white/20 rounded-lg p-3 text-white focus:outline-none focus:border-purple-500" placeholder="أدخل اسمك الثلاثي...">
             </div>
             <div>
-                <label id="s-sphone-lbl" class="block text-gray-300 text-sm font-semibold mb-1">رقم تليفون الطالب</label>
-                <input type="tel" id="reg-student-phone" class="w-full p-3 bg-black/40 border border-gray-600 rounded-xl text-white focus:ring-2 focus:ring-purple-500" placeholder="01xxxxxxxx">
+                <label id="lbl-su-sphone" class="block text-sm text-gray-300 mb-1">هاتف الطالب:</label>
+                <input type="text" id="signup_sphone" class="w-full bg-black/30 border border-white/20 rounded-lg p-3 text-white focus:outline-none focus:border-purple-500" placeholder="01xxxxxxxx">
             </div>
             <div>
-                <label id="s-fphone-lbl" class="block text-gray-300 text-sm font-semibold mb-1">رقم تليفون الأب</label>
-                <input type="tel" id="reg-father-phone" class="w-full p-3 bg-black/40 border border-gray-600 rounded-xl text-white focus:ring-2 focus:ring-purple-500" placeholder="01xxxxxxxx">
-                </div>
-            <div>
-                <label id="s-email-lbl" class="block text-gray-300 text-sm font-semibold mb-1">البريد الإلكتروني</label>
-                <input type="email" id="reg-email" class="w-full p-3 bg-black/40 border border-gray-600 rounded-xl text-white focus:ring-2 focus:ring-purple-500" placeholder="example@gmail.com">
+                <label id="lbl-su-fphone" class="block text-sm text-gray-300 mb-1">هاتف ولي الأمر:</label>
+                <input type="text" id="signup_fphone" class="w-full bg-black/30 border border-white/20 rounded-lg p-3 text-white focus:outline-none focus:border-purple-500" placeholder="01xxxxxxxx">
             </div>
             <div>
-                <label id="s-id-lbl" class="block text-gray-300 text-sm font-semibold mb-1">رقم الـ ID (3 أرقام فقط إجباري)</label>
-                <input type="text" id="reg-id" maxlength="3" class="w-full p-3 bg-black/40 border border-gray-600 rounded-xl text-white focus:ring-2 focus:ring-purple-500 font-mono tracking-widest text-center text-lg" placeholder="123">
+                <label id="lbl-su-email" class="block text-sm text-gray-300 mb-1">البريد الإلكتروني:</label>
+                <input type="email" id="signup_email" class="w-full bg-black/30 border border-white/20 rounded-lg p-3 text-white focus:outline-none focus:border-purple-500" placeholder="example@gmail.com">
             </div>
-            <button onclick="handleSignup()" id="s-btn" class="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition">إنشاء حساب جديد</button>
+            <div>
+                <label id="lbl-su-id" class="block text-sm text-gray-300 mb-1">معرّف الطالب (ID):</label>
+                <input type="text" id="signup_id" class="w-full bg-black/30 border border-white/20 rounded-lg p-3 text-white focus:outline-none focus:border-purple-500" placeholder="مثال: 123">
+            </div>
+            <div>
+                <label id="lbl-su-pass" class="block text-sm text-gray-300 mb-1">كلمة المرور:</label>
+                <input type="password" id="signup_pass" class="w-full bg-black/30 border border-white/20 rounded-lg p-3 text-white focus:outline-none focus:border-purple-500" placeholder="أنشئ كلمة مرور...">
+            </div>
+            <button onclick="handleSignup()" id="btn-su-submit" class="w-full bg-purple-600 hover:bg-purple-500 transition py-3 rounded-lg font-bold shadow-lg text-white">إنشاء الحساب</button>
         </div>
-
-        <div id="login-msg" class="mt-4 text-center text-sm font-semibold text-red-400"></div>
     </div>
 
     <script>
-        let currentLang = 'ar';
+        let currentLang = localStorage.getItem('siteLang') || 'ar';
 
-        function switchTab(mode) {
-            let btnLogin = document.getElementById('tab-login');
-            let btnSignup = document.getElementById('tab-signup');
-            let loginForm = document.getElementById('login-form');
-            let signupForm = document.getElementById('signup-form');
-
-            if (mode === 'login') {
-                btnLogin.className = "flex-1 py-2 text-sm font-semibold rounded-lg bg-purple-600 text-white transition";
-                btnSignup.className = "flex-1 py-2 text-sm font-semibold rounded-lg text-gray-400 hover:text-white transition";
-                loginForm.classList.remove('hidden');
-                signupForm.classList.add('hidden');
-            } else {
-                btnSignup.className = "flex-1 py-2 text-sm font-semibold rounded-lg bg-purple-600 text-white transition";
-                btnLogin.className = "flex-1 py-2 text-sm font-semibold rounded-lg text-gray-400 hover:text-white transition";
-                signupForm.classList.remove('hidden');
-                loginForm.classList.add('hidden');
+        const dict = {
+            ar: {
+                title: "منصة الامتحانات الذكية - تسجيل الدخول",
+                mainTitle: "منصة الامتحانات الذكية",
+                subtitle: "نظام تصحيح ذكي ومتابعة فورية",
+                tabLogin: "تسجيل الدخول",
+                tabSignup: "إنشاء حساب",
+                loginName: "الاسم الكامل:",
+                loginId: "معرّف الطالب (ID):",
+                loginPass: "كلمة المرور:",
+                loginBtn: "تسجيل الدخول",
+                suName: "الاسم الكامل:",
+                suSPhone: "هاتف الطالب:",
+                suFPhone: "هاتف ولي الأمر:",
+                suEmail: "البريد الإلكتروني:",
+                suId: "معرّف الطالب (ID):",
+                suPass: "كلمة المرور:",
+                suBtn: "إنشاء الحساب",
+                alertFill: "يرجى ملء الحقول (الاسم، ID، وكلمة المرور)!",
+                alertExist: "هذا الـ ID مسجل مسبقاً، يرجى تسجيل الدخول مباشرة.",
+                alertSuccess: "تم إنشاء الحساب بنجاح! يمكنك الآن تسجيل الدخول.",
+                alertError: "الاسم، المعرّف (ID)، أو كلمة المرور غير صحيحة!"
+            },
+            en: {
+                title: "Smart Exam System - Login",
+                mainTitle: "Smart Exam System",
+                subtitle: "AI Correction & Live Monitoring",
+                tabLogin: "Login",
+                tabSignup: "Sign Up",
+                loginName: "Full Name:",
+                loginId: "Student ID:",
+                loginPass: "Password:",
+                loginBtn: "Login",
+                suName: "Full Name:",
+                suSPhone: "Student Phone:",
+                suFPhone: "Father Phone:",
+                suEmail: "Email Address:",
+                suId: "Student ID:",
+                suPass: "Password:",
+                suBtn: "Create Account",
+                alertFill: "Please fill in Name, ID, and Password fields!",
+                alertExist: "This ID is already registered. Please log in directly.",
+                alertSuccess: "Account created successfully! You can now log in.",
+                alertError: "Name, ID, or password is incorrect!"
             }
-            document.getElementById('login-msg').innerText = "";
-        }
-
-        function handleSignup() {
-            let name = document.getElementById('reg-name').value.trim();
-            let sPhone = document.getElementById('reg-student-phone').value.trim();
-            let fPhone = document.getElementById('reg-father-phone').value.trim();
-            let email = document.getElementById('reg-email').value.trim();
-            let studentId = document.getElementById('reg-id').value.trim();
-            let msgDiv = document.getElementById('login-msg');
-
-            if (!name || !sPhone || !fPhone || !email || !studentId) {
-                msgDiv.innerText = currentLang === 'ar' ? "يرجى ملء جميع الحقول الخمسة!" : "Please fill all 5 fields!";
-                return;
-            }
-
-            if (studentId.length !== 3 || isNaN(studentId)) {
-                msgDiv.innerText = currentLang === 'ar' ? "يجب أن يكون الـ ID مكون من 3 أرقام صحيحة تماماً!" : "ID must be exactly 3 digits!";
-                return;
-            }
-
-            let registeredUsers = JSON.parse(localStorage.getItem('registeredUsers')) || [];
-
-            let idExists = registeredUsers.some(u => u.studentId === studentId);
-            if (idExists) {
-                msgDiv.innerText = currentLang === 'ar' ? "عذراً، رقم الـ ID هذا مستخدم بالفعل من قبل طالب آخر!" : "This ID is already taken by another student!";
-                return;
-            }
-
-            let newUser = {
-                name: name,
-                studentPhone: sPhone,
-                fatherPhone: fPhone,
-                email: email,
-                studentId: studentId
-            };
-            registeredUsers.push(newUser);
-            localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers));
-            localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers));
-
-            // التعديل البسيط هنا 👇
-            alert(currentLang === 'ar' ? "تم إنشاء الحساب بنجاح! يرجى تسجيل الدخول الآن." : "Account created successfully! Please login now.");
-            switchTab('login'); // ينقله لصفحة تسجيل الدخول فوراً
-        }
-
-        function handleLogin() {
-            let name = document.getElementById('login-name').value.trim();
-            let studentId = document.getElementById('login-id').value.trim();
-            let msgDiv = document.getElementById('login-msg');
-
-            if (!name || !studentId) {
-                msgDiv.innerText = currentLang === 'ar' ? "يرجى إدخال الاسم ورقم الـ ID!" : "Please enter Name and ID!";
-                return;
-            }
-
-            if (name.toLowerCase() === "admin" && studentId === "000") {
-                localStorage.setItem('userName', "الدكتور المشرف");
-                window.location.href = 'admin-dashboard.html';
-                return;
-            }
-
-            let registeredUsers = JSON.parse(localStorage.getItem('registeredUsers')) || [];
-            let foundUser = registeredUsers.find(u => u.name === name && u.studentId === studentId);
-
-            if (!foundUser) {
-                msgDiv.innerText = currentLang === 'ar' ? "الاسم أو رقم الـ ID غير صحيح، أو لم تقم بإنشاء حساب بعد!" : "Invalid Name or ID, or account does not exist!";
-                return;
-            }
-
-            localStorage.setItem('userName', foundUser.name + " (ID: " + foundUser.studentId + ")");
-            window.location.href = 'exam.html';
-        }
+        };
 
         function toggleLanguage() {
             currentLang = currentLang === 'ar' ? 'en' : 'ar';
+            localStorage.setItem('siteLang', currentLang);
+            applyLang();
+        }
+        function applyLang() {
+            let t = dict[currentLang];
             let root = document.getElementById('html-root');
-            let langBtn = document.getElementById('lang-btn-text');
+            root.setAttribute('dir', currentLang === 'ar' ? 'rtl' : 'ltr');
+            root.setAttribute('lang', currentLang);
+
+            document.getElementById('page-title').innerText = t.title;
+            document.getElementById('main-title').innerText = t.mainTitle;
+            document.getElementById('main-subtitle').innerText = t.subtitle;
+            document.getElementById('tab-login').innerText = t.tabLogin;
+            document.getElementById('tab-signup').innerText = t.tabSignup;
             
-            if (currentLang === 'en') {
-                root.dir = 'ltr';
-                langBtn.innerText = 'عربي';
-                document.getElementById('page-title').innerText = "Smart Exam System - Login";
-                document.getElementById('main-heading').innerText = "Smart Exam System";
-                document.getElementById('sub-heading').innerText = "AI Correction & Live Monitoring";
-                document.getElementById('tab-login').innerText = "Login";
-                document.getElementById('tab-signup').innerText = "Sign Up";
-                
-                document.getElementById('l-name-lbl').innerText = "Full Name";
-                document.getElementById('l-id-lbl').innerText = "ID (3 digits)";
-                document.getElementById('l-btn').innerText = "Login";
+            document.getElementById('lbl-login-name').innerText = t.loginName;
+            document.getElementById('lbl-login-id').innerText = t.loginId;
+            document.getElementById('lbl-login-pass').innerText = t.loginPass;
+            document.getElementById('btn-login-submit').innerText = t.loginBtn;
 
-                document.getElementById('s-name-lbl').innerText = "Full Name";
-                document.getElementById('s-sphone-lbl').innerText = "Student Phone";
-                document.getElementById('s-fphone-lbl').innerText = "Father Phone";
-                document.getElementById('s-email-lbl').innerText = "Email Address";
-                document.getElementById('s-id-lbl').innerText = "ID (3 digits only)";
-                document.getElementById('s-btn').innerText = "Create Account";
+            document.getElementById('lbl-su-name').innerText = t.suName;
+            document.getElementById('lbl-su-sphone').innerText = t.suSPhone;
+            document.getElementById('lbl-su-fphone').innerText = t.suFPhone;
+            document.getElementById('lbl-su-email').innerText = t.suEmail;
+            document.getElementById('lbl-su-id').innerText = t.suId;
+            document.getElementById('lbl-su-pass').innerText = t.suPass;
+            document.getElementById('btn-su-submit').innerText = t.suBtn;
+
+            document.getElementById('lang-btn').innerText = currentLang === 'ar' ? 'English' : 'عربي';
+        }
+
+        applyLang();
+
+        function switchTab(tab) {
+            const loginForm = document.getElementById('form-login');
+            const signupForm = document.getElementById('form-signup');
+            const loginBtn = document.getElementById('tab-login');
+            const signupBtn = document.getElementById('tab-signup');
+            let t = dict[currentLang];
+
+            if (tab === 'login') {
+                loginForm.classList.remove('hidden');
+                signupForm.classList.add('hidden');
+                loginBtn.className = "flex-1 py-2 text-sm font-bold rounded-lg transition bg-purple-600 text-white";
+                signupBtn.className = "flex-1 py-2 text-sm font-bold rounded-lg transition text-gray-400";
             } else {
-                root.dir = 'rtl';
-                langBtn.innerText = 'English';
-                document.getElementById('page-title').innerText = "منصة الامتحانات الذكية - تسجيل الدخول";
-                document.getElementById('main-heading').innerText = "منصة الامتحانات الذكية";
-                document.getElementById('sub-heading').innerText = "نظام تصحيح ذكي ومتابعة فورية";
-                document.getElementById('tab-login').innerText = "تسجيل الدخول";
-                document.getElementById('tab-signup').innerText = "إنشاء حساب";
-
-                document.getElementById('l-name-lbl').innerText = "الاسم الكامل";
-                document.getElementById('l-id-lbl').innerText = "رقم الـ ID (3 أرقام)";
-                document.getElementById('l-btn').innerText = "تسجيل الدخول";
-                document.getElementById('s-name-lbl').innerText = "الاسم الكامل";
-                document.getElementById('s-sphone-lbl').innerText = "رقم تليفون الطالب";
-                document.getElementById('s-fphone-lbl').innerText = "رقم تليفون الأب";
-                document.getElementById('s-email-lbl').innerText = "البريد الإلكتروني";
-                document.getElementById('s-id-lbl').innerText = "رقم الـ ID (3 أرقام فقط إجباري)";
-                document.getElementById('s-btn').innerText = "إنشاء حساب جديد";
+                signupForm.classList.remove('hidden');
+                loginForm.classList.add('hidden');
+                signupBtn.className = "flex-1 py-2 text-sm font-bold rounded-lg transition bg-purple-600 text-white";
+                loginBtn.className = "flex-1 py-2 text-sm font-bold rounded-lg transition text-gray-400";
             }
+        }
+
+        function handleSignup() {
+            let name = document.getElementById('signup_name').value.trim();
+            let sphone = document.getElementById('signup_sphone').value.trim();
+            let fphone = document.getElementById('signup_fphone').value.trim();
+            let email = document.getElementById('signup_email').value.trim();
+            let id = document.getElementById('signup_id').value.trim();
+            let pass = document.getElementById('signup_pass').value.trim();
+            let t = dict[currentLang];
+
+            if(!name || !id || !pass) {
+                alert(t.alertFill);
+                return;
+            }
+
+            let users = JSON.parse(localStorage.getItem('studentsDB')) || {};
+            if(users[id]) {
+                alert(t.alertExist);
+                switchTab('login');
+                return;
+            }
+
+            users[id] = { name, sphone, fphone, email, id, password: pass };
+            localStorage.setItem('studentsDB', JSON.stringify(users));
+            alert(t.alertSuccess);
+            switchTab('login');
+        }
+
+        function handleLogin() {
+            let name = document.getElementById('login_name').value.trim();
+            let id = document.getElementById('login_id').value.trim();
+            let pass = document.getElementById('login_pass').value.trim();
+            let t = dict[currentLang];
+            if(!name || !id || !pass) {
+                alert(t.alertFill);
+                return;
+            }
+
+            let users = JSON.parse(localStorage.getItem('studentsDB')) || {};
+            // التحقق من أن الاسم والـ ID والباسورد متطابقين تماماً مع الحساب المسجل
+            if(!users[id] || users[id].password !== pass || users[id].name !== name) {
+                alert(t.alertError);
+                return;
+            }
+
+            localStorage.setItem('currentStudentID', id);
+            localStorage.setItem('currentStudentName', users[id].name);
+            window.location.href = "exam.html";
         }
     </script>
 </body>
