@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>منصة الامتحانات الذكية - امتحان الطالب</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'></script>
+</head>
+<body class="bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900 font-sans min-h-screen text-white p-6">
+
+    <div class="max-w-3xl mx-auto bg-white/10 backdrop-blur-md border border-white/25 p-8 rounded-2xl shadow-2xl">
+        
+        <div id="exam-header" class="flex justify-between items-center border-b border-white/20 pb-4 mb-6">
+            <div>
+                <h1 class="text-2xl font-bold text-blue-400">امتحان المادة الدراسية</h1>
+                <p id="student-welcome" class="text-gray-300 text-sm mt-1">مرحباً بك</p>
+            </div>
+            <div class="bg-red-500/20 border border-red-500/50 px-4 py-2 rounded-xl text-center">
+                <span class="block text-xs text-red-300">الوقت المتبقي</span>
+                <span id="timer" class="text-xl font-mono font-bold text-red-400">--:--</span>
+            </div>
+        </div>
+
+        <div id="exam-body">
+            <div id="exam-pdf-alert" class="hidden bg-purple-900/40 border border-purple-500/50 p-5 rounded-xl mb-6 text-center space-y-3">
+                <p class="text-purple-300 font-bold">📄 أرفق الدكتور ملف أسئلة الامتحان الرسمي (PDF).</p>
+                <button onclick="alert('جاري فتح ملف أسئلة الامتحان...')" class="bg-purple-600 hover:bg-purple-700 text-white text-sm font-bold py-2 px-5 rounded-xl transition">معاينة أو تحميل ملف الأسئلة (PDF)</button>
+            </div>
+
+            <div id="exam-questions-container" class="space-y-6">
+                </div>
+
+            <button onclick="submitExam(false)" class="w-full mt-6 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 text-white font-bold py-3.5 px-4 rounded-xl shadow-lg transition duration-300 text-lg">تسليم الإجابات وإنهاء الامتحان</button>
+        </div>
+
+        <div id="result-screen" class="hidden space-y-6 text-center py-8">
+            <h2 class="text-3xl font-bold text-green-400">🎉 تم تسليم الامتحان بنجاح!</h2>
+            <div id="score-box" class="bg-black/40 border border-white/20 p-6 rounded-2xl inline-block">
+                </div>
+
+            <div id="model-answer-section" class="hidden mt-6 bg-purple-900/30 border border-purple-500/40 p-5 rounded-xl">
+                <h3 class="text-lg font-bold text-purple-300 mb-2">📌 نموذج الإجابة (Model Answer)</h3>
+                <p class="text-gray-300 text-sm mb-4">قام الدكتور برفع نموذج الإجابة الرسمي للامتحان، يمكنك مراجعته الآن:</p>
+                <button onclick="alert('جاري تحميل نموذج الإجابة (PDF)...')" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-6 rounded-xl transition text-sm">تحميل نموذج الإجابة الرسمي</button>
+            </div>
+
+            <button onclick="window.location.href='index.html'" class="block w-full mt-4 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 rounded-xl">الخروج إلى صفحة الدخول</button>
+        </div>
+
+        <div id="result-msg" class="mt-6 text-center text-lg font-semibold"></div>
+
+    </div>
+
+    <script>
+        const userName = localStorage.getItem('userName') || "الطالب";
+        document.getElementById('student-welcome').innerText = "مرحباً بك، " + userName;
+
+        let examStatus = localStorage.getItem('examStatus') || "open";
+        if (examStatus === "closed") {
+            document.getElementById('exam-body').innerHTML = '<div class="text-center py-12"><h2 class="text-2xl font-bold text-red-400 mb-2">عذراً، الامتحان مغلق حالياً من قبل الدكتور!</h2><p class="text-gray-300">يرجى الانتظار لحين فتح الامتحان للطلاب.</p></div>';
+            document.getElementById('exam-header').style.display = 'none';
+        } else {
+            if(localStorage.getItem('hasPdfExam') === "true") {
+                document.getElementById('exam-pdf-alert').classList.remove('hidden');
+            }
+            loadExamQuestions();
+        }
+
+        function loadExamQuestions() {
+            let container = document.getElementById('exam-questions-container');
+            let questions = JSON.parse(localStorage.getItem('examQuestions')) || [];
+
+            if (questions.length === 0) {
+                container.innerHTML = '<p class="text-center text-gray-400 py-6">لم يتم إدراج أسئلة لهذا الامتحان بعد.</p>';
+                return;
+            }
+
+            container.innerHTML = "";
+            questions.forEach(function(q, index) {
+                let html = '<div class="bg-black/30 p-5 rounded-xl border border-white/10 space-y-3">';
+                html += '<p class="font-semibold text-lg">' + (index + 1) + '. ' + q.text + '</p>';
+
+                if (q.type === 'mcq' && q.options && q.options.length > 0) {
+                    html += '<div class="space-y-2 pr-4">';
+                    let letters = ['A', 'B', 'C', 'D'];
+                    let labels = ['أ', 'ب', 'ج', 'د'];
+                    q.options.forEach(function(opt, optIdx) {
+                        html += '<label class="flex items-center space-x-3 space-x-reverse cursor-pointer text-gray-200 hover:text-white">';
+                        html += '<input type="radio" name="q_' + index + '" value="' + letters[optIdx] + '" class="text-blue-600">';
+                        html += '<span>' + labels[optIdx] + ') ' + opt + '</span>';
+                        html += '</label>';
+                    });
+                    html += '</div>';
+                } else {
+                    // ربط الـ id المظبوط بمربع النص وملف الصوره
+                    html += '<textarea id="essay_text_' + index + '" rows="3" class="w-full p-3 bg-black/40 border border-gray-600 rounded-xl text-white placeholder-gray-500 text-sm" placeholder="اكتب إجابتك النصية هنا..."></textarea>';
+                    html += '<div class="flex items-center space-x-3 space-x-reverse pt-2">';
+                    html += '<label class="text-xs text-purple-300">أو رفع صورة إجابة يدوية لهذا السؤال:</label>';
+                    html += '<input type="file" id="essay_img_' + index + '" accept="image/*" class="text-xs text-gray-400 file:mr-2 file:py-1 file:px-3 file:rounded-lg file:border-0 file:bg-blue-600 file:text-white cursor-pointer">';
+                    html += '</div>';
+                }
+
+                html += '</div>';
+                container.innerHTML += html;
+            });
+        }
+
+        let durationMinutes = parseInt(localStorage.getItem('examDuration')) || 10;
+        let timeLeft = durationMinutes * 60;
+        let startTime = Date.now();
+        let timerElement = document.getElementById('timer');
+
+        let countdown = setInterval(function() {
+            let minutes = Math.floor(timeLeft / 60);
+            let seconds = timeLeft % 60;
+            let mStr = minutes < 10 ? "0" + minutes : minutes;
+            let sStr = seconds < 10 ? "0" + seconds : seconds;
+            timerElement.innerText = mStr + ":" + sStr;
+            
+            if (timeLeft <= 0) {
+                clearInterval(countdown);
+                alert("انتهى وقت الامتحان! سيتم تسليم ورقتك تلقائياً.");
+                submitExam(true);
+            }
+            timeLeft--;
+        }, 1000);
+
+       function submitExam(isAuto) {
+            clearInterval(countdown);
+            
+            let timeSpentSeconds = Math.floor((Date.now() - startTime) / 1000);
+            let spentMins = Math.floor(timeSpentSeconds / 60);
+            let spentSecs = timeSpentSeconds % 60;
+            let timeStr = spentMins + " دقيقة و " + spentSecs + " ثانية";
+
+            let questions = JSON.parse(localStorage.getItem('examQuestions')) || [];
+            let totalMcq = 0;
+            let correctMcq = 0;
+            let totalEssayScore = 0;
+            let maxEssayScore = 0;
+
+            questions.forEach(function(q, index) {
+                if (q.type === 'mcq') {
+                    totalMcq++;
+                    let selectedRadio = document.querySelector('input[name="q_' + index + '"]:checked');
+                    if (selectedRadio && selectedRadio.value === q.correct) {
+                        correctMcq++;
+                    }
+                } else if (q.type === 'essay') {
+                    maxEssayScore += 5; 
+                    let essayInput = document.getElementById('essay_text_' + index);
+                    let userEssayAnswer = essayInput ? essayInput.value.trim().toLowerCase().replace(/\s+/g, ' ') : "";
+                    let modelAnswer = q.modelAnswer ? q.modelAnswer.trim().toLowerCase().replace(/\s+/g, ' ') : "";
+
+                    // لو الإجابة فاضية، أو كتب "لا اعرف"
+                    if (userEssayAnswer === "" || userEssayAnswer.includes("لا اعرف") || userEssayAnswer.includes("مش عارف")) {
+                        totalEssayScore += 0; 
+                    } 
+                    // مطابقة تامة 100% مع نموذج الإجابة الخاص بالدكتور
+                    else if (userEssayAnswer === modelAnswer) {
+                        totalEssayScore += 5; // تطابق تام -> الدرجة كاملة
+                    } 
+                    // لو مفيش تطابق تام بالحرف -> صفر فوراً
+                    else {
+                        totalEssayScore += 0; 
+                    }
+                }
+            });
+
+            let mcqPercentage = totalMcq > 0 ? (correctMcq / totalMcq) * 100 : 100;
+            let finalScoreText = "";
+
+            if (totalMcq > 0 && maxEssayScore > 0) {
+                let essayPercentage = (totalEssayScore / maxEssayScore) * 100;
+                let combinedScore = Math.round((mcqPercentage + essayPercentage) / 2);
+                finalScoreText = combinedScore + "% (MCQ: " + correctMcq + "/" + totalMcq + " | المقالي المكتوب: " + totalEssayScore + "/" + maxEssayScore + ")";
+            } else if (totalMcq > 0) {
+                finalScoreText = Math.round(mcqPercentage) + "% (" + correctMcq + " من " + totalMcq + " صحيح)";
+            } else if (maxEssayScore > 0) {
+                let essayPercentage = Math.round((totalEssayScore / maxEssayScore) * 100);
+                finalScoreText = essayPercentage + "% (تصحيح المقالي: " + totalEssayScore + " من " + maxEssayScore + ")";
+            } else {
+                finalScoreText = "100% (تسليم ناجح)";
+            }
+            let submissions = JSON.parse(localStorage.getItem('examSubmissions')) || [];
+            submissions.push({
+                name: userName,
+                status: isAuto ? "انتهى الوقت (تسليم تلقائي)" : "تم التسليم بنجاح",
+                score: finalScoreText,
+                timeTaken: timeStr
+            });
+            localStorage.setItem('examSubmissions', JSON.stringify(submissions));
+
+            let examBody = document.getElementById('exam-body');
+            let examHeader = document.getElementById('exam-header');
+            let resultScreen = document.getElementById('result-screen');
+
+            if(examBody) examBody.style.display = 'none';
+            if(examHeader) examHeader.style.display = 'none';
+            if(resultScreen) {
+                resultScreen.classList.remove('hidden');
+                resultScreen.style.display = 'block';
+            }
+            
+            document.getElementById('score-box').innerHTML = '<p class="text-gray-300 text-sm mb-1">النتيجة النهائية (تصحيح ذكي دقيق للمقالي)</p><p class="text-2xl font-bold text-green-400">' + finalScoreText + '</p>';
+        }
+    </script>
+</body>
+</html>
