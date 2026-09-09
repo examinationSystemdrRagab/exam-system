@@ -1,474 +1,431 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl" id="admin-root">
+<html lang="ar" dir="rtl" id="html-root">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title id="admin-title">لوحة تحكم الدكتور - منصة الامتحانات الذكية</title>
-    <script src="https://tailwindcss.com"></script>
+    <title id="page-title">لوحة تحكم الأستاذ</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        let pass = prompt("أدخل كلمة المرور الخاصة لوحة التحكم / Enter Admin Password:");
-        if (pass !== "12345") {
-            alert("كلمة المرور غير صحيحة! / Incorrect Password!");
-            window.location.href = "index.html";
-        }
-    </script>
 </head>
-<body class="bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900 min-h-screen p-4 text-white">
+<body class="bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900 min-h-screen p-4 flex flex-col items-center text-white">
 
-    <!-- زر تبديل اللغة -->
-    <div class="max-w-4xl mx-auto flex justify-end mb-4">
-        <button onclick="toggleAdminLang()" id="admin-lang-btn" class="bg-purple-600/50 hover:bg-purple-600 text-xs px-3 py-1.5 rounded-lg border border-white/20 transition font-bold text-white">English</button>
-    </div>
-
-    <div class="max-w-4xl mx-auto space-y-6">
+    <div class="max-w-4xl w-full bg-white/10 backdrop-blur-md border border-white/20 p-6 rounded-2xl shadow-2xl relative space-y-6">
         
-        <div class="bg-white/10 backdrop-blur-md border border-white/20 p-6 rounded-2xl flex justify-between items-center shadow-xl">
+        <!-- زرار تبديل اللغة -->
+        <div class="absolute top-4 left-4">
+            <button onclick="toggleAdminLanguage()" id="lang-btn" class="bg-purple-600/50 hover:bg-purple-600 text-xs px-3 py-1.5 rounded-lg border border-white/20 transition font-bold">English</button>
+        </div>
+
+        <!-- رأس الصفحة -->
+        <div class="border-b border-white/20 pb-4">
+            <h1 id="main-heading" class="text-2xl font-bold text-purple-300">لوحة تحكم أستاذ المادة</h1>
+            <p id="main-desc" class="text-sm text-gray-300 mt-1">إدارة الأسئلة، إعدادات الامتحان، ومراجعة درجات الطلاب.</p>
+        </div>
+
+        <!-- أزرار التحكم في التصفير -->
+        <div class="bg-black/20 p-4 rounded-xl border border-white/10 flex flex-wrap gap-3 items-center justify-between">
             <div>
-                <h1 id="adm-heading" class="text-2xl font-bold text-purple-300">لوحة تحكم الدكتور (المشرف)</h1>
-                <p id="adm-sub" class="text-gray-300 text-sm mt-1">إعداد أسئلة الامتحان الذكية، ومتابعة إجابات وتدقيق درجات الطلاب</p>
+                <h3 id="control-title" class="font-bold text-sm text-red-300">منطقة التحكم وإدارة البيانات</h3>
+                <p id="control-desc" class="text-xs text-gray-400">يمكنك مسح الامتحانات والنتائج وحدها، أو مسح حسابات الطلاب وحدها.</p>
             </div>
-            <div class="flex space-x-2 space-x-reverse">
-                <button onclick="clearSystem()" id="btn-clear" class="bg-amber-600 hover:bg-amber-500 transition px-4 py-2 rounded-lg text-sm font-bold">تصفير السيستم</button>
-                <button onclick="logoutAdmin()" id="btn-logout" class="bg-red-600 hover:bg-red-500 transition px-4 py-2 rounded-lg text-sm font-bold">خروج</button>
+            <div class="flex gap-3">
+                <button onclick="clearExamsOnly()" id="clear-exams-btn" class="bg-red-600/40 hover:bg-red-600 border border-red-500 text-xs px-3 py-2 rounded-lg transition font-bold text-white">
+                    حذف الامتحانات والدرجات فقط
+                </button>
+                <button onclick="clearStudentsOnly()" id="clear-students-btn" class="bg-orange-600/40 hover:bg-orange-600 border border-orange-500 text-xs px-3 py-2 rounded-lg transition font-bold text-white">
+                    حذف بيانات الطلاب فقط
+                </button>
             </div>
         </div>
 
-        <div class="bg-white/10 backdrop-blur-md border border-white/20 p-6 rounded-2xl space-y-4 shadow-xl">
-            <h2 id="adm-settings-title" class="text-lg font-bold text-blue-300">⚙️ إعدادات وقت الامتحان وحالته</h2>
+        <!-- إعدادات الامتحان -->
+        <div class="bg-black/20 p-4 rounded-xl border border-white/10 space-y-4">
+            <h3 id="settings-title" class="font-bold text-purple-200">إعدادات الامتحان العامة</h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <label id="lbl-duration" class="block text-sm text-gray-300 mb-1">مدة الامتحان (بالدقائق)</label>
-                    <input type="number" id="exam-duration" class="w-full bg-black/30 border border-white/20 rounded-lg p-3 text-white">
+                    <label id="duration-label" class="block text-xs text-gray-300 mb-1">مدة الامتحان (بالدقائق):</label>
+                    <input type="number" id="exam-duration" class="w-full bg-black/40 border border-white/20 rounded-lg p-2 text-white text-sm focus:outline-none focus:border-purple-500" value="10">
                 </div>
                 <div>
-                    <label id="lbl-status" class="block text-sm text-gray-300 mb-1">حالة الامتحان</label>
-                    <select id="exam-status" class="w-full bg-black/30 border border-white/20 rounded-lg p-3 text-white">
-                        <option value="متاح للطلاب" id="opt-open" class="bg-slate-900">متاح للطلاب</option>
-                        <option value="مغلق" id="opt-closed" class="bg-slate-900">مغلق</option>
+                    <label id="status-label" class="block text-xs text-gray-300 mb-1">حالة الامتحان:</label>
+                    <select id="exam-status" class="w-full bg-black/40 border border-white/20 rounded-lg p-2 text-white text-sm focus:outline-none focus:border-purple-500">
+                        <option id="opt-open" value="متاح للطلاب" class="bg-slate-900">متاح للطلاب (Open)</option>
+                        <option id="opt-closed" value="مغلق" class="bg-slate-900">مغلق (Closed)</option>
                     </select>
                 </div>
             </div>
-            <button onclick="saveExamSettings()" id="btn-save-settings" class="bg-purple-600 hover:bg-purple-500 transition px-6 py-2 rounded-lg font-bold">حفظ إعدادات الامتحان</button>
+            <button onclick="saveExamSettings()" id="save-settings-btn" class="bg-purple-600 hover:bg-purple-500 text-xs px-4 py-2 rounded-lg font-bold transition">حفظ الإعدادات</button>
         </div>
 
-        <div class="bg-white/10 backdrop-blur-md border border-white/20 p-6 rounded-2xl space-y-4 shadow-xl">
-            <h2 id="adm-q-title" class="text-lg font-bold text-yellow-300">📝 بنك الأسئلة (إضافة سؤال جديد)</h2>
-            <div>
-                <label id="lbl-q-type" class="block text-sm text-gray-300 mb-1">نوع السؤال</label>
-                <select id="q-type" onchange="toggleQuestionType()" class="w-full bg-black/30 border border-white/20 rounded-lg p-3 text-white">
-                    <option value="essay" id="opt-essay" class="bg-slate-900">سؤال مقالي</option>
-                    <option value="mcq" id="opt-mcq" class="bg-slate-900">اختيار من متعدد (MCQ)</option>
-                </select>
-            </div>
-            <div>
-                <label id="lbl-q-text" class="block text-sm text-gray-300 mb-1">نص السؤال</label>
-                <input type="text" id="q-text" class="w-full bg-black/30 border border-white/20 rounded-lg p-3 text-white" placeholder="اكتب السؤال هنا...">
-            </div>
-            
-            <div id="mcq-options-box" class="space-y-2 hidden">
-                <label id="lbl-options" class="block text-sm text-gray-300">الخيارات (سيتم ترقيمها تلقائياً):</label>
-                <input type="text" id="q-opt1" class="w-full bg-black/30 border border-white/20 rounded-lg p-2 text-white text-sm" placeholder="الخيار الأول">
-                <input type="text" id="q-opt2" class="w-full bg-black/30 border border-white/20 rounded-lg p-2 text-white text-sm" placeholder="الخيار الثاني">
-                <input type="text" id="q-opt3" class="w-full bg-black/30 border border-white/20 rounded-lg p-2 text-white text-sm" placeholder="الخيار الثالث">
-                <input type="text" id="q-opt4" class="w-full bg-black/30 border border-white/20 rounded-lg p-2 text-white text-sm" placeholder="الخيار الرابع (اختياري)">
-            </div>
-
-            <div>
-                <label id="lbl-model" class="block text-sm text-gray-300 mb-1">الإجابة النموذجية (اكتب حرف الخيار أو الإجابة):</label>
-                <input type="text" id="q-model" class="w-full bg-black/30 border border-white/20 rounded-lg p-3 text-white" placeholder="مثال: أ أو A">
-            </div>
-            <button onclick="addQuestion()" id="btn-add-q" class="bg-blue-600 hover:bg-blue-500 transition px-6 py-2 rounded-lg font-bold">حفظ وإضافة السؤال للامتحان</button>
-        </div>
-
-        <div class="bg-white/10 backdrop-blur-md border border-white/20 p-6 rounded-2xl space-y-4 shadow-xl">
-            <h2 id="adm-list-title" class="text-lg font-bold text-green-300">📚 الأسئلة الحالية في الامتحان</h2>
-            <div id="questions-list" class="space-y-2"></div>
-        </div>
-
-        <div class="bg-white/10 backdrop-blur-md border border-white/20 p-6 rounded-2xl space-y-4 shadow-xl">
-            <h2 id="adm-subs-title" class="text-lg font-bold text-orange-300">👥 متابعة الطلاب وتسليماتهم ومراجعة الدرجات</h2>
-            <div class="overflow-x-auto">
-                <table class="w-full text-right border-collapse" id="subs-table-elem">
-                    <thead>
-                        <tr class="border-b border-white/20 text-sm text-gray-300" id="table-header-row">
-                            <th class="p-3 th-id">معرّف الطالب</th>
-                            <th class="p-3 th-name">اسم الطالب</th>
-                            <th class="p-3 th-status">حالة التسليم</th>
-                            <th class="p-3 th-score">النتيجة التلقائية</th>
-                            <th class="p-3 th-action">إجراء مراجعة</th>
-                        </tr>
-                    </thead>
-                    <tbody id="submissions-table" class="text-sm">
-                        <tr><td colspan="5" class="p-4 text-center text-gray-400" id="no-subs-text">لا توجد تسليمات حتى الآن.</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-    </div>
-
-    <!-- نافذة المراجعة -->
-    <div id="grading-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
-        <div class="bg-slate-900 border border-white/20 max-w-2xl w-full p-6 rounded-2xl space-y-4 max-h-[90vh] overflow-y-auto">
-            <div class="flex justify-between items-center border-b border-white/10 pb-3">
-                <h3 id="modal-student-title" class="text-lg font-bold text-purple-300">مراجعة إجابات الطالب</h3>
-                <button onclick="closeModal()" id="btn-close-modal" class="text-red-400 font-bold px-3 py-1 bg-red-900/30 rounded-lg">إغلاق ✕</button>
-            </div>
-            <div id="modal-answers-content" class="space-y-4"></div>
-            <div class="border-t border-white/10 pt-4 space-y-3">
-                <div>
-                    <label id="lbl-modal-score" class="block text-sm text-gray-300 mb-1">الدرجة النهائية المعتمدة:</label>
-                    <input type="number" id="modal-final-score" class="w-full bg-black/40 border border-white/20 rounded-lg p-3 text-white">
+        <!-- إضافة سؤال جديد -->
+        <div class="bg-black/20 p-4 rounded-xl border border-white/10 space-y-4">
+            <h3 id="add-q-title" class="font-bold text-purple-200">إضافة سؤال جديد للبنوك</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="md:col-span-2">
+                    <label id="q-text-label" class="block text-xs text-gray-300 mb-1">نص السؤال:</label>
+                    <input type="text" id="q-text" class="w-full bg-black/40 border border-white/20 rounded-lg p-2 text-white text-sm focus:outline-none focus:border-purple-500" placeholder="اكتب السؤال هنا...">
                 </div>
                 <div>
-                    <label id="lbl-modal-notes" class="block text-sm text-gray-300 mb-1">ملاحظات أستاذ المادة:</label>
-                    <textarea id="modal-teacher-notes" rows="2" class="w-full bg-black/40 border border-white/20 rounded-lg p-3 text-white"></textarea>
+                    <label id="q-type-label" class="block text-xs text-gray-300 mb-1">نوع السؤال:</label>
+                    <select id="q-type" onchange="toggleQuestionType()" class="w-full bg-black/40 border border-white/20 rounded-lg p-2 text-white text-sm focus:outline-none focus:border-purple-500">
+                        <option id="opt-mcq-type" value="mcq" class="bg-slate-900">اختيار من متعدد (MCQ)</option>
+                        <option id="opt-essay-type" value="essay" class="bg-slate-900">سؤال مقالي (Essay)</option>
+                    </select>
                 </div>
-                <button onclick="saveFinalGrade()" id="btn-save-grade" class="w-full bg-green-600 hover:bg-green-500 transition py-3 rounded-lg font-bold text-white">اعتماد النتيجة ورصدها للطالب</button>
+            </div>
+
+            <div id="mcq-options-container" class="space-y-2">
+                <label id="mcq-label" class="block text-xs text-gray-300">الخيارات (اختر الإجابة النموذجية بالحرف أ أو ب أو ج أو د):</label>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    <input type="text" id="opt-0" class="bg-black/40 border border-white/20 rounded-lg p-2 text-white text-sm" placeholder="الخيار الأول">
+                    <input type="text" id="opt-1" class="bg-black/40 border border-white/20 rounded-lg p-2 text-white text-sm" placeholder="الخيار الثاني">
+                    <input type="text" id="opt-2" class="bg-black/40 border border-white/20 rounded-lg p-2 text-white text-sm" placeholder="الخيار الثالث">
+                    <input type="text" id="opt-3" class="bg-black/40 border border-white/20 rounded-lg p-2 text-white text-sm" placeholder="الخيار الرابع">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label id="model-label" class="block text-xs text-gray-300 mb-1">الإجابة النموذجية (مثل: أ أو ب):</label>
+                    <input type="text" id="q-model" class="w-full bg-black/40 border border-white/20 rounded-lg p-2 text-white text-sm focus:outline-none focus:border-purple-500" placeholder="مثال: أ">
+                </div>
+                <div>
+                    <label id="points-label" class="block text-xs text-gray-300 mb-1">درجة السؤال:</label>
+                    <input type="number" id="q-points" class="w-full bg-black/40 border border-white/20 rounded-lg p-2 text-white text-sm focus:outline-none focus:border-purple-500" value="5">
+                </div>
+            </div>
+
+            <button onclick="addQuestion()" id="add-q-btn" class="w-full bg-green-600 hover:bg-green-500 text-sm py-2.5 rounded-lg font-bold transition">إضافة السؤال للبندك</button>
+        </div>
+
+        <!-- الأسئلة المتاحة -->
+        <div class="bg-black/20 p-4 rounded-xl border border-white/10 space-y-3">
+            <h3 id="q-list-title" class="font-bold text-purple-200">الأسئلة المتاحة حالياً في الامتحان</h3>
+            <div id="questions-list" class="space-y-2 max-h-60 overflow-y-auto"></div>
+        </div>
+
+        <!-- تسليمات الطلاب -->
+        <div class="bg-black/20 p-4 rounded-xl border border-white/10 space-y-3">
+            <h3 id="sub-list-title" class="font-bold text-purple-200">مراجعة تسليمات وإجابات الطلاب</h3>
+            <div id="submissions-list" class="space-y-2 max-h-60 overflow-y-auto"></div>
+        </div>
+
+        <!-- الطلاب المسجلين -->
+        <div class="bg-black/20 p-4 rounded-xl border border-white/10 space-y-3">
+            <h3 id="students-list-title" class="font-bold text-purple-200">الطلاب المسجلين في النظام</h3>
+            <div id="registered-students-list" class="space-y-2 max-h-60 overflow-y-auto"></div>
+        </div>
+        </div>
+
+    <!-- Modal التصحيح -->
+    <div id="grading-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-slate-900 border border-white/20 max-w-lg w-full p-6 rounded-2xl space-y-4 relative text-white">
+            <button onclick="closeModal()" class="absolute top-4 left-4 text-red-400 font-bold hover:text-red-300">إغلاق ✕</button>
+            <h2 id="modal-student-title" class="text-lg font-bold text-purple-300 border-b border-white/10 pb-2"></h2>
+            <div id="modal-answers-container" class="space-y-3 max-h-72 overflow-y-auto text-xs pr-1"></div>
+            <div class="space-y-2 pt-2 border-t border-white/10">
+                <label class="block text-xs font-bold text-gray-300">الدرجة النهائية المعتمدة:</label>
+                <input type="number" id="modal-final-score" class="w-full bg-black/40 border border-white/20 rounded-lg p-2 text-white text-sm">
+                <label class="block text-xs font-bold text-gray-300">ملاحظات أستاذ المادة:</label>
+                <textarea id="modal-teacher-notes" rows="2" class="w-full bg-black/40 border border-white/20 rounded-lg p-2 text-white text-sm" placeholder="اكتب ملاحظاتك للطالب هنا..."></textarea>
+                <button onclick="saveStudentGrade()" class="w-full bg-blue-600 hover:bg-blue-500 py-2.5 rounded-lg font-bold text-white transition text-xs">اعتمد النتيجة ورصدها للطالب</button>
             </div>
         </div>
     </div>
 
     <script>
-        let adminLang = localStorage.getItem('siteLang') || 'ar';
+        let adminLang = localStorage.getItem('adminLang') || 'ar';
+        let examSettings = JSON.parse(localStorage.getItem('examSettings')) || { duration: 10, status: 'متاح للطلاب' };
+        let questions = JSON.parse(localStorage.getItem('examQuestions')) || [];
+        let studentsDB = JSON.parse(localStorage.getItem('studentsDB')) || {};
+        let submissions = JSON.parse(localStorage.getItem('examSubmissions')) || {};
+        let activeGradingStudentID = null;
 
-        const adminDict = {
+        const adminTranslations = {
             ar: {
-                title: "لوحة تحكم الدكتور - منصة الامتحانات الذكية",
-                heading: "لوحة تحكم الدكتور (المشرف)",
-                sub: "إعداد أسئلة الامتحان الذكية، ومتابعة إجابات وتدقيق درجات الطلاب",
-                btnClear: "تصفير السيستم",
-                btnLogout: "خروج",
-                settingsTitle: "⚙️ إعدادات وقت الامتحان وحالته",
-                lblDuration: "مدة الامتحان (بالدقائق)",
-                lblStatus: "حالة الامتحان",
-                optOpen: "متاح للطلاب",
-                optClosed: "مغلق",
-                btnSaveSettings: "حفظ إعدادات الامتحان",
-                qTitle: "📝 بنك الأسئلة (إضافة سؤال جديد)",
-                lblQType: "نوع السؤال",
-                optEssay: "سؤال مقالي",
-                optMcq: "اختيار من متعدد (MCQ)",
-                lblQText: "نص السؤال",
-                lblOptions: "الخيارات (سيتم ترقيمها تلقائياً):",
-                lblModel: "الإجابة النموذجية (اكتب حرف الخيار أو الإجابة):",
-                btnAddQ: "حفظ وإضافة السؤال للامتحان",
-                listTitle: "📚 الأسئلة الحالية في الامتحان",
-                subsTitle: "👥 متابعة الطلاب وتسليماتهم ومراجعة الدرجات",
-                thId: "معرّف الطالب",
-                thName: "اسم الطالب",
-                thStatus: "حالة التسليم",
-                thScore: "النتيجة التلقائية",
-                thAction: "إجراء مراجعة",
-                noSubs: "لا توجد تسليمات حتى الآن.",
-                modalScore: "الدرجة النهائية المعتمدة:",
-                modalNotes: "ملاحظات أستاذ المادة:",
-                btnSaveGrade: "اعتماد النتيجة ورصدها للطالب",
-                btnClose: "إغلاق ✕",
-                reviewBtn: "مراجعة وفحص الورقة"
+                title: "لوحة تحكم الأستاذ", mainHeading: "لوحة تحكم أستاذ المادة", mainDesc: "إدارة الأسئلة، إعدادات الامتحان، ومراجعة درجات الطلاب.",
+                controlTitle: "منطقة التحكم وإدارة البيانات", controlDesc: "يمكنك مسح الامتحانات والنتائج وحدها، أو مسح حسابات الطلاب وحدها.",
+                clearExamsBtn: "حذف الامتحانات والدرجات فقط", clearStudentsBtn: "حذف بيانات الطلاب فقط",
+                settingsTitle: "إعدادات الامتحان العامة", durationLabel: "مدة الامتحان (بالدقائق):", statusLabel: "حالة الامتحان:",
+                statusOpen: "متاح للطلاب (Open)", statusClosed: "مغلق (Closed)", saveSettingsBtn: "حفظ الإعدادات",
+                addQTitle: "إضافة سؤال جديد للبنوك", qTextLabel: "نص السؤال:", qTextPlaceholder: "اكتب السؤال هنا...",
+                qTypeLabel: "نوع السؤال:", mcqOption: "اختيار من متعدد (MCQ)", essayOption: "سؤال مقالي (Essay)",
+                mcqLabel: "الخيارات (اختر الإجابة النموذجية بالحرف أ أو ب أو ج أو د):",
+                opt1: "الخيار الأول", opt2: "الخيار الثاني", opt3: "الخيار الثالث", opt4: "الخيار الرابع",
+                modelLabel: "الإجابة النموذجية (مثل: أ أو ب):", modelPlaceholder: "مثال: أ", pointsLabel: "درجة السؤال:",
+                addBtn: "إضافة السؤال للبندك", qListTitle: "الأسئلة المتاحة حالياً في الامتحان", subListTitle: "مراجعة تسليمات وإجابات الطلاب",
+                studentsListTitle: "الطلاب المسجلين في النظام", noQText: "لا توجد أسئلة مضافة حتى الآن.", noSubText: "لا توجد تسليمات من الطلاب حتى الآن.", noStudentsText: "لا يوجد طلاب مسجلين حتى الآن."
             },
             en: {
-                title: "Instructor Dashboard - Smart Exam System",
-                heading: "Instructor Dashboard (Admin)",
-                sub: "Setup exam questions, monitor submissions, and review student grades",
-                btnClear: "Reset System",
-                btnLogout: "Logout",
-                settingsTitle: "⚙️ Exam Time & Status Settings",
-                lblDuration: "Exam Duration (Minutes)",
-                lblStatus: "Exam Status",
-                optOpen: "Open for Students",
-                optClosed: "Closed",
-                btnSaveSettings: "Save Exam Settings",
-                qTitle: "📝 Question Bank (Add New Question)",
-                lblQType: "Question Type",
-                optEssay: "Essay Question",
-                optMcq: "Multiple Choice (MCQ)",
-                lblQText: "Question Text",
-                lblOptions: "Options (Will be numbered automatically):",
-                lblModel: "Model Answer (Type option letter or answer):",
-                btnAddQ: "Save & Add Question to Exam",
-                listTitle: "📚 Current Exam Questions",
-                subsTitle: "👥 Student Submissions & Grading Review",
-                thId: "Student ID",
-                thName: "Student Name",
-                thStatus: "Submission Status",
-                thScore: "Auto Score",
-                thAction: "Review Action",
-                noSubs: "No submissions yet.",
-                modalScore: "Approved Final Score:",
-                modalNotes: "Instructor Notes:",
-                btnSaveGrade: "Approve & Submit Grade",
-                btnClose: "Close ✕",
-                reviewBtn: "Review Paper"
+                title: "Instructor Dashboard", mainHeading: "Instructor Dashboard", mainDesc: "Manage questions, exam settings, and review student grades.",
+                controlTitle: "Control & Data Management", controlDesc: "You can clear exams and results only, or clear student accounts only.",
+                clearExamsBtn: "Delete Exams & Results Only", clearStudentsBtn: "Delete Student Accounts Only",
+                settingsTitle: "General Exam Settings", durationLabel: "Exam Duration (Minutes):", statusLabel: "Exam Status:",
+                statusOpen: "Open for Students", statusClosed: "Closed", saveSettingsBtn: "Save Settings",
+                addQTitle: "Add New Question to Bank", qTextLabel: "Question Text:", qTextPlaceholder: "Type question here...",
+                qTypeLabel: "Question Type:", mcqOption: "Multiple Choice (MCQ)", essayOption: "Essay Question",
+                mcqLabel: "Options (Choose model answer letter A, B, C, D):",
+                opt1: "First Option", opt2: "Second Option", opt3: "Third Option", opt4: "Fourth Option",
+                modelLabel: "Model Answer (e.g., A or B):", modelPlaceholder: "e.g., A", pointsLabel: "Question Points:",
+                addBtn: "Add Question to Bank", qListTitle: "Current Questions in Exam", subListTitle: "Review Student Submissions & Answers",
+                studentsListTitle: "Registered Students", noQText: "No questions added yet.", noSubText: "No student submissions yet.", noStudentsText: "No registered students yet."
             }
         };
 
-        function toggleAdminLang() {
-            adminLang = adminLang === 'ar' ? 'en' : 'ar';
-            localStorage.setItem('siteLang', adminLang);
+        function toggleAdminLanguage() {
+            adminLang = (adminLang === 'ar') ? 'en' : 'ar';
+            localStorage.setItem('adminLang', adminLang);
             applyAdminLang();
             renderQuestionsList();
-            renderSubmissionsTable();
+            renderSubmissionsList();
+            renderRegisteredStudents();
         }
 
         function applyAdminLang() {
-            let t = adminDict[adminLang];
-            let root = document.getElementById('admin-root');
-            root.setAttribute('dir', adminLang === 'ar' ? 'rtl' : 'ltr');
-            root.setAttribute('lang', adminLang);
+            let t = adminTranslations[adminLang];
+            let root = document.getElementById('html-root');
+            if(root) {
+                root.setAttribute('dir', adminLang === 'ar' ? 'rtl' : 'ltr');
+                root.setAttribute('lang', adminLang);
+            }
 
-            document.getElementById('admin-title').innerText = t.title;
-            document.getElementById('adm-heading').innerText = t.heading;
-            document.getElementById('adm-sub').innerText = t.sub;
-            document.getElementById('btn-clear').innerText = t.btnClear;
-            document.getElementById('btn-logout').innerText = t.btnLogout;
-            document.getElementById('adm-settings-title').innerText = t.settingsTitle;
-            document.getElementById('lbl-duration').innerText = t.lblDuration;
-            document.getElementById('lbl-status').innerText = t.lblStatus;
-            document.getElementById('opt-open').innerText = t.optOpen;
-            document.getElementById('opt-closed').innerText = t.optClosed;
-            document.getElementById('btn-save-settings').innerText = t.btnSaveSettings;
-            document.getElementById('adm-q-title').innerText = t.qTitle;
-            document.getElementById('lbl-q-type').innerText = t.lblQType;
-            document.getElementById('opt-essay').innerText = t.optEssay;
-            document.getElementById('opt-mcq').innerText = t.optMcq;
-            document.getElementById('lbl-q-text').innerText = t.lblQText;
-            document.getElementById('lbl-options').innerText = t.lblOptions;
-            document.getElementById('lbl-model').innerText = t.lblModel;
-            document.getElementById('btn-add-q').innerText = t.btnAddQ;
-            document.getElementById('adm-list-title').innerText = t.listTitle;
-            document.getElementById('adm-subs-title').innerText = t.subsTitle;
+            function safeSetText(id, text) {
+                let elem = document.getElementById(id);
+                if (elem) elem.innerText = text;
+            }
+            function safeSetPlaceholder(id, text) {
+                let elem = document.getElementById(id);
+                if (elem) elem.placeholder = text;
+            }
 
-            // الجدول
-            let tr = document.getElementById('table-header-row');
-            tr.children[0].innerText = t.thId;
-            tr.children[1].innerText = t.thName;
-            tr.children[2].innerText = t.thStatus;
-            tr.children[3].innerText = t.thScore;
-            tr.children[4].innerText = t.thAction;
-
-            document.getElementById('lbl-modal-score').innerText = t.modalScore;
-            document.getElementById('lbl-modal-notes').innerText = t.modalNotes;
-            document.getElementById('btn-save-grade').innerText = t.btnSaveGrade;
-            document.getElementById('btn-close-modal').innerText = t.btnClose;
-            document.getElementById('admin-lang-btn').innerText = adminLang === 'ar' ? 'English' : 'عربي';
+            safeSetText('page-title', t.title);
+            safeSetText('main-heading', t.mainHeading);
+            safeSetText('main-desc', t.mainDesc);
+            safeSetText('control-title', t.controlTitle);
+            safeSetText('control-desc', t.controlDesc);
+            safeSetText('clear-exams-btn', t.clearExamsBtn);
+            safeSetText('clear-students-btn', t.clearStudentsBtn);
+            safeSetText('settings-title', t.settingsTitle);
+            safeSetText('duration-label', t.durationLabel);
+            safeSetText('status-label', t.statusLabel);
+            safeSetText('opt-open', t.statusOpen);
+            safeSetText('opt-closed', t.statusClosed);
+            safeSetText('save-settings-btn', t.saveSettingsBtn);
+            safeSetText('add-q-title', t.addQTitle);
+            safeSetText('q-text-label', t.qTextLabel);
+            safeSetPlaceholder('q-text', t.qTextPlaceholder);
+            safeSetText('q-type-label', t.qTypeLabel);
+            safeSetText('opt-mcq-type', t.mcqOption);
+            safeSetText('opt-essay-type', t.essayOption);
+            safeSetText('mcq-label', t.mcqLabel);
+            safeSetPlaceholder('opt-0', t.opt1);
+            safeSetPlaceholder('opt-1', t.opt2);
+            safeSetPlaceholder('opt-2', t.opt3);
+            safeSetPlaceholder('opt-3', t.opt4);
+            safeSetText('model-label', t.modelLabel);
+            safeSetPlaceholder('q-model', t.modelPlaceholder);
+            safeSetText('points-label', t.pointsLabel);
+            safeSetText('add-q-btn', t.addBtn);
+            safeSetText('q-list-title', t.qListTitle);
+            safeSetText('sub-list-title', t.subListTitle);
+            safeSetText('students-list-title', t.studentsListTitle);
+            let langBtn = document.getElementById('lang-btn');
+            if(langBtn) {
+                langBtn.innerText = adminLang === 'ar' ? 'English' : 'عربي';
+            }
         }
 
         applyAdminLang();
-        let questions = JSON.parse(localStorage.getItem('examQuestions')) || [];
-        let examSettings = JSON.parse(localStorage.getItem('examSettings')) || { duration: 10, status: 'متاح للطلاب' };
-        let submissions = JSON.parse(localStorage.getItem('examSubmissions')) || {};
-        let currentGradingID = null;
 
         document.getElementById('exam-duration').value = examSettings.duration;
         document.getElementById('exam-status').value = examSettings.status;
 
         function saveExamSettings() {
-            examSettings.duration = document.getElementById('exam-duration').value;
-            examSettings.status = document.getElementById('exam-status').value;
+            let durationInput = document.getElementById('exam-duration');
+            let statusInput = document.getElementById('exam-status');
+            examSettings = {
+                duration: durationInput ? parseInt(durationInput.value) || 10 : 10,
+                status: statusInput ? statusInput.value : 'متاح للطلاب'
+            };
             localStorage.setItem('examSettings', JSON.stringify(examSettings));
             alert(adminLang === 'ar' ? "تم حفظ إعدادات الامتحان بنجاح!" : "Exam settings saved successfully!");
         }
 
         function toggleQuestionType() {
             let type = document.getElementById('q-type').value;
-            let mcqBox = document.getElementById('mcq-options-box');
-            if (type === 'mcq') {
-                mcqBox.classList.remove('hidden');
-            } else {
-                mcqBox.classList.add('hidden');
-            }
+            let container = document.getElementById('mcq-options-container');
+            container.style.display = type === 'mcq' ? 'block' : 'none';
         }
 
         function addQuestion() {
+            let text = document.getElementById('q-text').value.trim();
             let type = document.getElementById('q-type').value;
-            let textInput = document.getElementById('q-text');
-            let modelInput = document.getElementById('q-model');
-            
-            if (!textInput || !textInput.value.trim()) {
-                alert(adminLang === 'ar' ? "يرجى كتابة نص السؤال!" : "Please write the question text!");
+            let modelAnswer = document.getElementById('q-model').value.trim();
+            let points = parseInt(document.getElementById('q-points').value) || 5;
+
+            if (!text || !modelAnswer) {
+                alert(adminLang === 'ar' ? "يرجى إدخال نص السؤال والإجابة النموذجية!" : "Please enter question text and model answer!");
                 return;
             }
 
-            let qObj = { 
-                type: type, 
-                text: textInput.value.trim(), 
-                modelAnswer: modelInput ? modelInput.value.trim().toLowerCase() : "", 
-                points: 5 
-            };
-
+            let rawOptions = [];
             if (type === 'mcq') {
-                let opt1 = document.getElementById('q-opt1').value.trim();
-                let opt2 = document.getElementById('q-opt2').value.trim();
-                let opt3 = document.getElementById('q-opt3').value.trim();
-                let opt4 = document.getElementById('q-opt4') ? document.getElementById('q-opt4').value.trim() : "";
-                
-                qObj.rawOptions = [opt1, opt2, opt3, opt4].filter(function(o) { return o !== ""; });
+                for (let i = 0; i < 4; i++) {
+                    let optVal = document.getElementById('opt-' + i).value.trim();
+                    if (optVal) rawOptions.push(optVal);
+                }
+                if (rawOptions.length < 2) {
+                    alert(adminLang === 'ar' ? "يرجى إدخال خيارين على الأقل." : "Please enter at least two options.");
+                    return;
+                }
             }
 
-            questions.push(qObj);
+            questions.push({ text, type, rawOptions, modelAnswer, points });
             localStorage.setItem('examQuestions', JSON.stringify(questions));
-            alert(adminLang === 'ar' ? "تم إضافة السؤال بنجاح!" : "Question added successfully!");
-            
-            textInput.value = '';
-            if(modelInput) modelInput.value = '';
-            if(type === 'mcq') {
-                document.getElementById('q-opt1').value = '';
-                document.getElementById('q-opt2').value = '';
-                document.getElementById('q-opt3').value = '';
-                if(document.getElementById('q-opt4')) document.getElementById('q-opt4').value = '';
-            }
-            renderQuestionsList();
+            alert(adminLang === 'ar' ? "تمت إضافة السؤال بنجاح!" : "Question added successfully!");
+            location.reload();
         }
 
         function renderQuestionsList() {
-            const list = document.getElementById('questions-list');
-            if (!list) return;
-            
-            let savedQuestions = JSON.parse(localStorage.getItem('examQuestions')) || [];
-            if (savedQuestions.length === 0) {
-                list.innerHTML = '<p class="text-sm text-gray-400">' + (adminLang === 'ar' ? "لا توجد أسئلة مضافة حتى الآن." : "No questions added yet.") + '</p>';
+            let listContainer = document.getElementById('questions-list');
+            listContainer.innerHTML = "";
+            if (questions.length === 0) {
+                listContainer.innerHTML = '<p class="text-xs text-gray-400">' + adminTranslations[adminLang].noQText + '</p>';
                 return;
             }
-
-            list.innerHTML = "";
-            savedQuestions.forEach(function(q, index) {
-                let card = document.createElement('div');
-                card.className = "bg-black/30 p-3 rounded-lg flex justify-between items-center text-sm border border-white/10 mb-2";
-                let info = document.createElement('div');
-                let typeText = q.type === 'mcq' ? (adminLang === 'ar' ? 'اختياري' : 'MCQ') : (adminLang === 'ar' ? 'مقالي' : 'Essay');
-                info.innerHTML = '<span class="font-bold text-purple-350">Question ' + (index + 1) + ' (' + typeText + '):</span> <span>' + q.text + '</span>';
-                card.appendChild(info);
-
+            questions.forEach((q, idx) => {
+                let item = document.createElement('div');
+                item.className = "flex justify-between items-center bg-black/30 p-2.5 rounded-lg text-xs";
+                let info = document.createElement('span');
+                info.innerText = (idx + 1) + ". " + q.text + " (" + q.points + " pts)";
+                item.appendChild(info);
                 let delBtn = document.createElement('button');
-                delBtn.type = "button";
-                delBtn.className = "text-red-400 hover:text-red-300 font-bold px-2 py-1 bg-red-950/40 rounded cursor-pointer";
-                delBtn.innerText = adminLang === 'ar' ? 'حذف' : 'Delete';
-                delBtn.onclick = function() { deleteQuestion(index); };
-                
-                card.appendChild(delBtn);
-                list.appendChild(card);
+                delBtn.className = "bg-red-600/50 hover:bg-red-600 px-2.5 py-1 rounded text-white transition";
+                delBtn.innerText = adminLang === 'ar' ? "حذف" : "Delete";
+                delBtn.onclick = function() {
+                    questions.splice(idx, 1);
+                    localStorage.setItem('examQuestions', JSON.stringify(questions));
+                    renderQuestionsList();
+                };
+                item.appendChild(delBtn);
+                listContainer.appendChild(item);
             });
         }
-
-        function deleteQuestion(index) {
-            questions.splice(index, 1);
-            localStorage.setItem('examQuestions', JSON.stringify(questions));
-            renderQuestionsList();
-        }
-
-        function renderSubmissionsTable() {
-            const tbody = document.getElementById('submissions-table');
-            if (!tbody) return;
-            
-            let keys = Object.keys(submissions);
-            if (keys.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-gray-400">' + adminDict[adminLang].noSubs + '</td></tr>';
+        function renderSubmissionsList() {
+            let container = document.getElementById('submissions-list');
+            container.innerHTML = "";
+            let subKeys = Object.keys(submissions);
+            if (subKeys.length === 0) {
+                container.innerHTML = '<p class="text-xs text-gray-400">' + adminTranslations[adminLang].noSubText + '</p>';
                 return;
             }
-            let html = "";
-            keys.forEach(function(id) {
-                let sub = submissions[id];
-                let totalPoints = questions.reduce(function(a,b){ return a + (b.points || 5); }, 0);
-                let statusClass = sub.status === 'معتمد' || sub.status === 'Approved' ? 'bg-green-900/50 text-green-300 border border-green-500/30' : 'bg-yellow-900/50 text-yellow-300 border border-yellow-500/30';
-                
-                html += '<tr class="border-b border-white/10 hover:bg-white/5">';
-                html += '<td class="p-3">' + sub.studentId + '</td>';
-                html += '<td class="p-3 font-bold">' + sub.studentName + '</td>';
-                html += '<td class="p-3"><span class="px-2 py-1 rounded text-xs ' + statusClass + '">' + sub.status + '</span></td>';
-                html += '<td class="p-3">' + sub.autoScore + ' / ' + totalPoints + '</td>';
-                html += '<td class="p-3"><button onclick="openGradingModal(\'' + sub.studentId + '\')" class="bg-purple-600 hover:bg-purple-500 px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer">' + adminDict[adminLang].reviewBtn + '</button></td>';
-                html += '</tr>';
+            subKeys.forEach(sId => {
+                let sub = submissions[sId];
+                let item = document.createElement('div');
+                item.className = "flex justify-between items-center bg-black/30 p-3 rounded-lg text-xs";
+                let info = document.createElement('div');
+                info.innerHTML = '<p class="font-bold text-sm text-purple-200">' + sub.studentName + ' <span class="text-xs text-gray-400">(ID: ' + sId + ')</span></p>' +
+                                 '<p class="text-gray-300">Score: <span class="text-yellow-400 font-bold">' + sub.autoScore + '</span> | Status: <span class="text-purple-300">' + sub.status + '</span></p>';
+                item.appendChild(info);
+                let reviewBtn = document.createElement('button');
+                reviewBtn.className = "bg-purple-600 hover:bg-purple-500 px-3 py-1.5 rounded text-white font-bold transition";
+                reviewBtn.innerText = adminLang === 'ar' ? "مراجعة وتصحيح" : "Review & Grade";
+                reviewBtn.onclick = function() { openGradingModal(sId); };
+                item.appendChild(reviewBtn);
+                container.appendChild(item);
             });
-            tbody.innerHTML = html;
         }
 
-        function openGradingModal(studentId) {
-            currentGradingID = studentId;
-            let sub = submissions[studentId];
-            document.getElementById('modal-student-title').innerText = (adminLang === 'ar' ? "مراجعة إجابات الطالب: " : "Review Student: ") + sub.studentName + " (ID: " + sub.studentId + ")";
-            document.getElementById('modal-final-score').value = sub.finalScore;
-            document.getElementById('modal-teacher-notes').value = sub.teacherNotes || '';
-
-            const contentBox = document.getElementById('modal-answers-content');
-            contentBox.innerHTML = "";
-
-            questions.forEach(function(q, idx) {
-                let studentAnsObj = sub.answers[idx] || { answer: adminLang === 'ar' ? "لم يجب" : "No Answer", image: null };
-                
-                let card = document.createElement('div');
-                card.className = "bg-black/30 p-3 rounded-lg border border-white/10 space-y-2";
-
-                let qTitle = document.createElement('p');
-                qTitle.className = "font-bold text-sm text-purple-200";
-                qTitle.innerText = "Q" + (idx + 1) + ": " + q.text;
-                card.appendChild(qTitle);
-                let sAns = document.createElement('p');
-                sAns.className = "text-xs text-gray-300";
-                sAns.innerHTML = "<span class='font-bold'>" + (adminLang === 'ar' ? "إجابة الطالب: " : "Student Answer: ") + "</span>" + studentAnsObj.answer;
-                card.appendChild(sAns);
-
-                let mAns = document.createElement('p');
-                mAns.className = "text-xs text-green-300";
-                mAns.innerHTML = "<span class='font-bold'>" + (adminLang === 'ar' ? "الإجابة النموذجية: " : "Model Answer: ") + "</span>" + (q.modelAnswer || "N/A");
-                card.appendChild(mAns);
-
-                if (studentAnsObj.image) {
-                    let imgBox = document.createElement('div');
-                    imgBox.className = "mt-2";
-                    imgBox.innerHTML = '<span class="text-xs text-blue-300 block mb-1">' + (adminLang === 'ar' ? "الصورة المرفقة:" : "Attached Image:") + '</span>';
-                    
-                    let img = document.createElement('img');
-                    img.src = studentAnsObj.image;
-                    img.className = "max-h-40 rounded-lg border border-white/20";
-                    imgBox.appendChild(img);
-                    card.appendChild(imgBox);
-                }
-
-                contentBox.appendChild(card);
+        function renderRegisteredStudents() {
+            let container = document.getElementById('registered-students-list');
+            if (!container) return;
+            container.innerHTML = "";
+            let studentKeys = Object.keys(studentsDB);
+            if (studentKeys.length === 0) {
+                container.innerHTML = '<p class="text-xs text-gray-400">' + adminTranslations[adminLang].noStudentsText + '</p>';
+                return;
+            }
+            studentKeys.forEach(sId => {
+                let studentData = studentsDB[sId];
+                let item = document.createElement('div');
+                item.className = "flex justify-between items-center bg-black/30 p-2.5 rounded-lg text-xs";
+                let info = document.createElement('span');
+                let studentName = (typeof studentData === 'object' && studentData.name) ? studentData.name : studentData;
+                info.innerText = (adminLang === 'ar' ? "الطالب: " : "Student: ") + studentName + " | (ID: " + sId + ")";
+                info.className = "text-purple-200 font-bold";
+                item.appendChild(info);
+                container.appendChild(item);
             });
+        }
 
-            let modal = document.getElementById('grading-modal');
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
+        function openGradingModal(sId) {
+            activeGradingStudentID = sId;
+            let sub = submissions[sId];
+            document.getElementById('modal-student-title').innerText = "Review: " + sub.studentName + " (ID: " + sId + ")";
+            document.getElementById('modal-final-score').value = sub.finalScore;
+            document.getElementById('modal-teacher-notes').value = sub.teacherNotes || "";
+
+            let ansContainer = document.getElementById('modal-answers-container');
+            ansContainer.innerHTML = "";
+            questions.forEach((q, qIdx) => {
+                let ansObj = sub.answers[qIdx] || { answer: "No answer", image: null };
+                let box = document.createElement('div');
+                box.className = "bg-black/30 p-3 rounded-lg space-y-1";
+                box.innerHTML = '<p class="font-bold text-purple-200">Q' + (qIdx + 1) + ': ' + q.text + '</p>' +
+                              '<p class="text-gray-300">Student Answer: <span class="text-yellow-300">' + ansObj.answer + '</span></p>' +
+                              '<p class="text-gray-300">Model Answer: <span class="text-green-300">' + q.modelAnswer + '</span></p>';
+                if (ansObj.image) {
+                    let img = document.createElement('img');
+                    img.src = ansObj.image;
+                    img.className = "max-h-32 mt-2 rounded border border-white/20";
+                    box.appendChild(img);
+                }
+                ansContainer.appendChild(box);
+            });
+            document.getElementById('grading-modal').classList.remove('hidden');
+            document.getElementById('grading-modal').classList.add('flex');
         }
 
         function closeModal() {
-            let modal = document.getElementById('grading-modal');
-            modal.classList.remove('flex');
-            modal.classList.add('hidden');
+            document.getElementById('grading-modal').classList.remove('flex');
+            document.getElementById('grading-modal').classList.add('hidden');
         }
 
-        function saveFinalGrade() {
-            if (!currentGradingID) return;
-            let newScore = parseFloat(document.getElementById('modal-final-score').value);
-            let notes = document.getElementById('modal-teacher-notes').value;
-
-            submissions[currentGradingID].finalScore = newScore;
-            submissions[currentGradingID].teacherNotes = notes;
-            submissions[currentGradingID].status = adminLang === 'ar' ? 'معتمد' : 'Approved';
-            submissions[currentGradingID].graded = true;
-
+        function saveStudentGrade() {
+            if (!activeGradingStudentID || !submissions[activeGradingStudentID]) return;
+            let newScore = parseFloat(document.getElementById('modal-final-score').value) || 0;
+            let notes = document.getElementById('modal-teacher-notes').value.trim();
+            submissions[activeGradingStudentID].finalScore = newScore;
+            submissions[activeGradingStudentID].teacherNotes = notes;
+            submissions[activeGradingStudentID].status = 'معتمد';
+            submissions[activeGradingStudentID].graded = true;
             localStorage.setItem('examSubmissions', JSON.stringify(submissions));
-            alert(adminLang === 'ar' ? "تم اعتماد النتيجة ورصدها للطالب بنجاح!" : "Grade approved and published successfully!");
+            alert("Grade saved successfully!");
             closeModal();
-            renderSubmissionsTable();
+            renderSubmissionsList();
         }
 
-        function clearSystem() {
-            if (confirm(adminLang === 'ar' ? "هل أنت متأكد من تصفير السيستم بالكامل؟" : "Are you sure you want to reset the system?")) {
-                localStorage.clear();
+        renderQuestionsList();
+        renderSubmissionsList();
+        renderRegisteredStudents();
+
+        function clearExamsOnly() {
+            if (confirm(adminLang === 'ar' ? "هل أنت متأكد من حذف الامتحانات والنتائج فقط؟" : "Are you sure you want to delete exams and results only?")) {
+                let savedStudents = localStorage.getItem('studentsDB');
+                localStorage.removeItem('examQuestions');
+                localStorage.removeItem('examSubmissions');
+                localStorage.removeItem('examSettings');
+                localStorage.removeItem('examRemainingSeconds');
+                if (savedStudents) localStorage.setItem('studentsDB', savedStudents);
                 location.reload();
             }
         }
 
-        function logoutAdmin() {
-            window.location.href = "index.html";
+        function clearStudentsOnly() {
+            if (confirm(adminLang === 'ar' ? "هل أنت متأكد من حذف بيانات الطلاب فقط؟" : "Are you sure you want to delete student accounts only?")) {
+                localStorage.removeItem('studentsDB');
+                location.reload();
+            }
         }
-
-        renderQuestionsList();
-        renderSubmissionsTable();
     </script>
 </body>
 </html>
