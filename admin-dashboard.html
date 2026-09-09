@@ -132,7 +132,17 @@
         </div>
     </div>
 
-    <script>
+    <script type="module">
+    import { db, doc, setDoc, getDoc, updateDoc, deleteDoc, collection, getDocs } from "./firebase.js";
+    // ربط الدوال بالمتصفح عشان الأزرار تشتغل فوراً
+    window.toggleAdminLanguage = toggleAdminLanguage;
+    window.saveExamSettings = saveExamSettings;
+    window.addQuestion = addQuestion;
+    window.clearExamsOnly = clearExamsOnly;
+    window.clearStudentsOnly = clearStudentsOnly;
+    window.closeModal = closeModal;
+    window.saveStudentGrade = saveStudentGrade;
+    window.toggleQuestionType = toggleQuestionType;
         let adminLang = localStorage.getItem('adminLang') || 'ar';
         let examSettings = JSON.parse(localStorage.getItem('examSettings')) || { duration: 10, status: 'متاح للطلاب' };
         let questions = JSON.parse(localStorage.getItem('examQuestions')) || [];
@@ -239,15 +249,23 @@
         document.getElementById('exam-duration').value = examSettings.duration;
         document.getElementById('exam-status').value = examSettings.status;
 
-        function saveExamSettings() {
+        async function saveExamSettings() {
             let durationInput = document.getElementById('exam-duration');
             let statusInput = document.getElementById('exam-status');
+            
             examSettings = {
                 duration: durationInput ? parseInt(durationInput.value) || 10 : 10,
                 status: statusInput ? statusInput.value : 'متاح للطلاب'
             };
-            localStorage.setItem('examSettings', JSON.stringify(examSettings));
-            alert(adminLang === 'ar' ? "تم حفظ إعدادات الامتحان بنجاح!" : "Exam settings saved successfully!");
+
+            try {
+                // حفظ الإعدادات في مجموعة "settings" وثيقة اسمها "exam" في فايربيس
+                await setDoc(doc(db, "settings", "exam"), examSettings);
+                alert(adminLang === 'ar' ? "تم حفظ إعدادات الامتحان أونلاين بنجاح!" : "Exam settings saved online successfully!");
+            } catch (error) {
+                console.error("Error saving settings: ", error);
+                alert("حدث خطأ أثناء الحفظ بالسيرفر.");
+            }
         }
 
         function toggleQuestionType() {
@@ -256,7 +274,7 @@
             container.style.display = type === 'mcq' ? 'block' : 'none';
         }
 
-        function addQuestion() {
+        async function addQuestion() {
             let text = document.getElementById('q-text').value.trim();
             let type = document.getElementById('q-type').value;
             let modelAnswer = document.getElementById('q-model').value.trim();
@@ -279,10 +297,19 @@
                 }
             }
 
-            questions.push({ text, type, rawOptions, modelAnswer, points });
-            localStorage.setItem('examQuestions', JSON.stringify(questions));
-            alert(adminLang === 'ar' ? "تمت إضافة السؤال بنجاح!" : "Question added successfully!");
-            location.reload();
+            let newQ = { text, type, rawOptions, modelAnswer, points, createdAt: Date.now() };
+
+            try {
+                questions.push(newQ);
+                // حفظ الأسئلة كمستند موحد في فايربيس
+                await setDoc(doc(db, "examData", "questionsBank"), { list: questions });
+                
+                alert(adminLang === 'ar' ? "تمت إضافة السؤال أونلاين بنجاح!" : "Question added online successfully!");
+                location.reload();
+            } catch (error) {
+                console.error("Error adding question: ", error);
+                alert("حدث خطأ أثناء حفظ السؤال بالسيرفر.");
+            }
         }
 
         function renderQuestionsList() {
