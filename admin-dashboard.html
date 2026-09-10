@@ -114,7 +114,7 @@
             <h3 id="students-list-title" class="font-bold text-purple-200">الطلاب المسجلين في النظام</h3>
             <div id="registered-students-list" class="space-y-2 max-h-60 overflow-y-auto"></div>
         </div>
-        </div>
+    </div>
 
     <!-- Modal التصحيح -->
     <div id="grading-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
@@ -133,21 +133,13 @@
     </div>
 
     <script type="module">
-    import { db, doc, setDoc, getDoc, updateDoc, deleteDoc, collection, getDocs } from "./firebase.js";
-    // ربط الدوال بالمتصفح عشان الأزرار تشتغل فوراً
-    window.toggleAdminLanguage = toggleAdminLanguage;
-    window.saveExamSettings = saveExamSettings;
-    window.addQuestion = addQuestion;
-    window.clearExamsOnly = clearExamsOnly;
-    window.clearStudentsOnly = clearStudentsOnly;
-    window.closeModal = closeModal;
-    window.saveStudentGrade = saveStudentGrade;
-    window.toggleQuestionType = toggleQuestionType;
+        import { db, doc, setDoc, getDoc, updateDoc, deleteDoc, collection, getDocs } from "./firebase.js";
+
         let adminLang = localStorage.getItem('adminLang') || 'ar';
-        let examSettings = JSON.parse(localStorage.getItem('examSettings')) || { duration: 10, status: 'متاح للطلاب' };
-        let questions = JSON.parse(localStorage.getItem('examQuestions')) || [];
-        let studentsDB = JSON.parse(localStorage.getItem('studentsDB')) || {};
-        let submissions = JSON.parse(localStorage.getItem('examSubmissions')) || {};
+        let examSettings = { duration: 10, status: 'متاح للطلاب' };
+        let questions = [];
+        let studentsDB = {};
+        let submissions = {};
         let activeGradingStudentID = null;
 
         const adminTranslations = {
@@ -244,10 +236,45 @@
             }
         }
 
-        applyAdminLang();
+        // جلب البيانات من فايربيس عند فتح الصفحة
+        async function loadDataFromFirebase() {
+            try {
+                // جلب الإعدادات
+                let settingsSnap = await getDoc(doc(db, "settings", "exam"));
+                if (settingsSnap.exists()) {
+                    examSettings = settingsSnap.data();
+                    document.getElementById('exam-duration').value = examSettings.duration || 10;
+                    document.getElementById('exam-status').value = examSettings.status || 'متاح للطلاب';
+                }
 
-        document.getElementById('exam-duration').value = examSettings.duration;
-        document.getElementById('exam-status').value = examSettings.status;
+                // جلب الأسئلة
+                let questionsSnap = await getDoc(doc(db, "examData", "questionsBank"));
+                if (questionsSnap.exists() && questionsSnap.data().list) {
+                    questions = questionsSnap.data().list;
+                }
+
+                // جلب الطلاب والتسليمات (إذا كانت مخزنة في مجموعات فايربيس أو كوثائق موحدة)
+                let studentsSnap = await getDoc(doc(db, "examData", "studentsDB"));
+                if (studentsSnap.exists()) {
+                    studentsDB = studentsSnap.data().list || {};
+                }
+
+                let submissionsSnap = await getDoc(doc(db, "examData", "submissions"));
+                if (submissionsSnap.exists()) {
+                    submissions = submissionsSnap.data().list || {};
+                }
+
+            } catch (error) {
+                console.error("Error loading data from Firebase:", error);
+            }
+
+            applyAdminLang();
+            renderQuestionsList();
+            renderSubmissionsList();
+            renderRegisteredStudents();
+        }
+
+        loadDataFromFirebase();
 
         async function saveExamSettings() {
             let durationInput = document.getElementById('exam-duration');
@@ -259,7 +286,6 @@
             };
 
             try {
-                // حفظ الإعدادات في مجموعة "settings" وثيقة اسمها "exam" في فايربيس
                 await setDoc(doc(db, "settings", "exam"), examSettings);
                 alert(adminLang === 'ar' ? "تم حفظ إعدادات الامتحان أونلاين بنجاح!" : "Exam settings saved online successfully!");
             } catch (error) {
@@ -301,11 +327,16 @@
 
             try {
                 questions.push(newQ);
-                // حفظ الأسئلة كمستند موحد في فايربيس
                 await setDoc(doc(db, "examData", "questionsBank"), { list: questions });
                 
                 alert(adminLang === 'ar' ? "تمت إضافة السؤال أونلاين بنجاح!" : "Question added online successfully!");
-                location.reload();
+                
+                // تفريغ الحقول بعد الإضافة الم الناجحة
+                document.getElementById('q-text').value = "";
+                document.getElementById('q-model').value = "";
+                for (let i = 0; i < 4; i++) { document.getElementById('opt-' + i).value = ""; }
+                
+                renderQuestionsList();
             } catch (error) {
                 console.error("Error adding question: ", error);
                 alert("حدث خطأ أثناء حفظ السؤال بالسيرفر.");
@@ -314,6 +345,7 @@
 
         function renderQuestionsList() {
             let listContainer = document.getElementById('questions-list');
+            if(!listContainer) return;
             listContainer.innerHTML = "";
             if (questions.length === 0) {
                 listContainer.innerHTML = '<p class="text-xs text-gray-400">' + adminTranslations[adminLang].noQText + '</p>';
@@ -328,17 +360,23 @@
                 let delBtn = document.createElement('button');
                 delBtn.className = "bg-red-600/50 hover:bg-red-600 px-2.5 py-1 rounded text-white transition";
                 delBtn.innerText = adminLang === 'ar' ? "حذف" : "Delete";
-                delBtn.onclick = function() {
+                delBtn.onclick = async function() {
                     questions.splice(idx, 1);
-                    localStorage.setItem('examQuestions', JSON.stringify(questions));
-                    renderQuestionsList();
+                    try {
+                        await setDoc(doc(db, "examData", "questionsBank"), { list: questions });
+                        renderQuestionsList();
+                    } catch(err) {
+                        console.error(err);
+                    }
                 };
                 item.appendChild(delBtn);
                 listContainer.appendChild(item);
             });
         }
+
         function renderSubmissionsList() {
             let container = document.getElementById('submissions-list');
+            if(!container) return;
             container.innerHTML = "";
             let subKeys = Object.keys(submissions);
             if (subKeys.length === 0) {
@@ -417,7 +455,7 @@
             document.getElementById('grading-modal').classList.add('hidden');
         }
 
-        function saveStudentGrade() {
+        async function saveStudentGrade() {
             if (!activeGradingStudentID || !submissions[activeGradingStudentID]) return;
             let newScore = parseFloat(document.getElementById('modal-final-score').value) || 0;
             let notes = document.getElementById('modal-teacher-notes').value.trim();
@@ -425,34 +463,46 @@
             submissions[activeGradingStudentID].teacherNotes = notes;
             submissions[activeGradingStudentID].status = 'معتمد';
             submissions[activeGradingStudentID].graded = true;
-            localStorage.setItem('examSubmissions', JSON.stringify(submissions));
-            alert("Grade saved successfully!");
-            closeModal();
-            renderSubmissionsList();
+            
+            try {
+                await setDoc(doc(db, "examData", "submissions"), { list: submissions });
+                alert("Grade saved successfully!");
+                closeModal();
+                renderSubmissionsList();
+            } catch(e) {
+                console.error(e);
+                alert("Error saving grade.");
+            }
         }
 
-        renderQuestionsList();
-        renderSubmissionsList();
-        renderRegisteredStudents();
-
-        function clearExamsOnly() {
+        async function clearExamsOnly() {
             if (confirm(adminLang === 'ar' ? "هل أنت متأكد من حذف الامتحانات والنتائج فقط؟" : "Are you sure you want to delete exams and results only?")) {
-                let savedStudents = localStorage.getItem('studentsDB');
-                localStorage.removeItem('examQuestions');
-                localStorage.removeItem('examSubmissions');
-                localStorage.removeItem('examSettings');
-                localStorage.removeItem('examRemainingSeconds');
-                if (savedStudents) localStorage.setItem('studentsDB', savedStudents);
-                location.reload();
+                try {
+                    await setDoc(doc(db, "examData", "questionsBank"), { list: [] });
+                    await setDoc(doc(db, "examData", "submissions"), { list: {} });
+                    location.reload();
+                } catch(e) { console.error(e); }
             }
         }
 
-        function clearStudentsOnly() {
+        async function clearStudentsOnly() {
             if (confirm(adminLang === 'ar' ? "هل أنت متأكد من حذف بيانات الطلاب فقط؟" : "Are you sure you want to delete student accounts only?")) {
-                localStorage.removeItem('studentsDB');
-                location.reload();
+                try {
+                    await setDoc(doc(db, "examData", "studentsDB"), { list: {} });
+                    location.reload();
+                } catch(e) { console.error(e); }
             }
         }
+
+        // ربط الدوال بالنافذة لتصبح متاحة للأزرار مباشرة
+        window.toggleAdminLanguage = toggleAdminLanguage;
+        window.saveExamSettings = saveExamSettings;
+        window.addQuestion = addQuestion;
+        window.clearExamsOnly = clearExamsOnly;
+        window.clearStudentsOnly = clearStudentsOnly;
+        window.closeModal = closeModal;
+        window.saveStudentGrade = saveStudentGrade;
+        window.toggleQuestionType = toggleQuestionType;
     </script>
 </body>
 </html>

@@ -72,7 +72,9 @@
         </div>
     </div>
 
-    <script>
+    <script type="module">
+        import { db, doc, setDoc, getDoc } from "./firebase.js";
+
         let currentLang = localStorage.getItem('siteLang') || 'ar';
 
         const dict = {
@@ -95,8 +97,9 @@
                 suBtn: "إنشاء الحساب",
                 alertFill: "يرجى ملء الحقول (الاسم، ID، وكلمة المرور)!",
                 alertExist: "هذا الـ ID مسجل مسبقاً، يرجى تسجيل الدخول مباشرة.",
-                alertSuccess: "تم إنشاء الحساب بنجاح! يمكنك الآن تسجيل الدخول.",
-                alertError: "الاسم، المعرّف (ID)، أو كلمة المرور غير صحيحة!"
+                alertSuccess: "تم إنشاء الحساب بنجاح أونلاين! يمكنك الآن تسجيل الدخول.",
+                alertError: "الاسم، المعرّف (ID)، أو كلمة المرور غير صحيحة!",
+                alertServer: "حدث خطأ في الاتصال بالسيرفر، يرجى المحاولة مرة أخرى."
             },
             en: {
                 title: "Smart Exam System - Login",
@@ -117,8 +120,9 @@
                 suBtn: "Create Account",
                 alertFill: "Please fill in Name, ID, and Password fields!",
                 alertExist: "This ID is already registered. Please log in directly.",
-                alertSuccess: "Account created successfully! You can now log in.",
-                alertError: "Name, ID, or password is incorrect!"
+                alertSuccess: "Account created successfully online! You can now log in.",
+                alertError: "Name, ID, or password is incorrect!",
+                alertServer: "Server connection error, please try again."
             }
         };
 
@@ -162,7 +166,6 @@
             const signupForm = document.getElementById('form-signup');
             const loginBtn = document.getElementById('tab-login');
             const signupBtn = document.getElementById('tab-signup');
-            let t = dict[currentLang];
 
             if (tab === 'login') {
                 loginForm.classList.remove('hidden');
@@ -177,7 +180,8 @@
             }
         }
 
-        function handleSignup() {
+        // إنشاء حساب طالب وجلب البيانات من Firebase مباشرة
+        async function handleSignup() {
             let name = document.getElementById('signup_name').value.trim();
             let sphone = document.getElementById('signup_sphone').value.trim();
             let fphone = document.getElementById('signup_fphone').value.trim();
@@ -191,40 +195,73 @@
                 return;
             }
 
-            let users = JSON.parse(localStorage.getItem('studentsDB')) || {};
-            if(users[id]) {
-                alert(t.alertExist);
-                switchTab('login');
-                return;
-            }
+            try {
+                // جلب قائمة الطلاب الحالية من Firebase
+                let studentsSnap = await getDoc(doc(db, "examData", "studentsDB"));
+                let users = {};
+                if (studentsSnap.exists() && studentsSnap.data().list) {
+                    users = studentsSnap.data().list;
+                }
 
-            users[id] = { name, sphone, fphone, email, id, password: pass };
-            localStorage.setItem('studentsDB', JSON.stringify(users));
-            alert(t.alertSuccess);
-            switchTab('login');
+                if(users[id]) {
+                    alert(t.alertExist);
+                    switchTab('login');
+                    return;
+                }
+
+                // إضافة الطالب الجديد للقائمة
+                users[id] = { name, sphone, fphone, email, id, password: pass };
+
+                // حفظ القائمة المحدثة في Firebase بشكل آمن
+                await setDoc(doc(db, "examData", "studentsDB"), { list: users });
+
+                alert(t.alertSuccess);
+                switchTab('login');
+            } catch (error) {
+                console.error("Signup error:", error);
+                alert(t.alertServer);
+            }
         }
 
-        function handleLogin() {
+        // تسجيل الدخول والتحقق من البيانات عبر Firebase
+        async function handleLogin() {
             let name = document.getElementById('login_name').value.trim();
             let id = document.getElementById('login_id').value.trim();
             let pass = document.getElementById('login_pass').value.trim();
             let t = dict[currentLang];
+
             if(!name || !id || !pass) {
                 alert(t.alertFill);
                 return;
             }
 
-            let users = JSON.parse(localStorage.getItem('studentsDB')) || {};
-            // التحقق من أن الاسم والـ ID والباسورد متطابقين تماماً مع الحساب المسجل
-            if(!users[id] || users[id].password !== pass || users[id].name !== name) {
-                alert(t.alertError);
-                return;
-            }
+            try {
+                // جلب بيانات الطلاب من Firebase للتحقق
+                let studentsSnap = await getDoc(doc(db, "examData", "studentsDB"));
+                let users = {};
+                if (studentsSnap.exists() && studentsSnap.data().list) {
+                    users = studentsSnap.data().list;
+                }
 
-            localStorage.setItem('currentStudentID', id);
-            localStorage.setItem('currentStudentName', users[id].name);
-            window.location.href = "exam.html";
+                // التحقق من أن الحساب موجود والبيانات مطابقة
+                if(!users[id] || users[id].password !== pass || users[id].name !== name) {
+                    alert(t.alertError);
+                    return;
+                }
+
+                localStorage.setItem('currentStudentID', id);
+                localStorage.setItem('currentStudentName', users[id].name);
+                window.location.href = "exam.html";
+            } catch (error) {
+                console.error("Login error:", error);
+                alert(t.alertServer);
+            }
         }
+
+        window.toggleLanguage = toggleLanguage;
+        window.switchTab = switchTab;
+        window.handleSignup = handleSignup;
+        window.handleLogin = handleLogin;
     </script>
 </body>
 </html>

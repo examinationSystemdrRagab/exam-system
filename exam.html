@@ -28,12 +28,19 @@
         </div>
 
         <!-- محتوى الصفحة -->
-        <div id="exam-container"></div>
+        <div id="exam-container">
+            <div class="text-center py-10 text-gray-300">جاري تحميل بيانات الامتحان من السيرفر...</div>
+        </div>
 
     </div>
 
-    <script>
+    <script type="module">
+        import { db, doc, setDoc, getDoc } from "./firebase.js";
+
         let currentLang = localStorage.getItem('siteLang') || 'ar';
+        let examSettings = { duration: 10, status: 'متاح للطلاب' };
+        let questions = [];
+        let submissions = {};
 
         const translations = {
             ar: {
@@ -77,6 +84,7 @@
                 essayPlaceholder: "Type your text answer here..."
             }
         };
+
         function toggleLanguage() {
             currentLang = currentLang === 'ar' ? 'en' : 'ar';
             localStorage.setItem('siteLang', currentLang);
@@ -112,9 +120,37 @@
 
         applyLanguage();
 
-        let examSettings = JSON.parse(localStorage.getItem('examSettings')) || { duration: 10, status: 'متاح للطلاب' };
-        let questions = JSON.parse(localStorage.getItem('examQuestions')) || [];
-        let submissions = JSON.parse(localStorage.getItem('examSubmissions')) || {};
+        // جلب الإعدادات والأسئلة والتسليمات من Firebase مباشرة
+        async function loadExamDataFromFirebase() {
+            try {
+                // 1. جلب إعدادات الامتحان
+                let settingsSnap = await getDoc(doc(db, "settings", "exam"));
+                if (settingsSnap.exists()) {
+                    examSettings = settingsSnap.data();
+                }
+
+                // 2. جلب الأسئلة
+                let questionsSnap = await getDoc(doc(db, "examData", "questionsBank"));
+                if (questionsSnap.exists() && questionsSnap.data().list) {
+                    questions = questionsSnap.data().list;
+                }
+
+                // 3. جلب تسليمات الطلاب
+                let submissionsSnap = await getDoc(doc(db, "examData", "submissions"));
+                if (submissionsSnap.exists() && submissionsSnap.data().list) {
+                    submissions = submissionsSnap.data().list;
+                }
+
+            } catch (error) {
+                console.error("Error loading exam data from Firebase:", error);
+            }
+
+            // بعد جلب البيانات، نبدأ عرض الصفحة وتشغيل المؤقت
+            renderExamPage();
+            initTimer();
+        }
+
+        loadExamDataFromFirebase();
 
         function renderExamPage() {
             let t = translations[currentLang];
@@ -208,7 +244,6 @@
 
                 if (q.type === 'mcq' && q.rawOptions && q.rawOptions.length > 0) {
                     q.rawOptions.forEach((optText, optIdx) => {
-                        // تثبيت الحروف العربية أ، ب، ج، د دائماً مهما كانت لغة الصفحة
                         let arabicLetters = ['أ', 'ب', 'ج', 'د', 'هـ'];
                         let letter = arabicLetters[optIdx] || (optIdx + 1);
                         let fullOptionValue = letter + ") " + optText;
@@ -296,7 +331,7 @@
             });
         }
 
-        function finalizeSubmission(answersObj, qIndex, answerValue, imageBase64, totalQ) {
+        async function finalizeSubmission(answersObj, qIndex, answerValue, imageBase64, totalQ) {
             answersObj[qIndex] = {
                 answer: answerValue,
                 image: imageBase64 || null
@@ -310,7 +345,6 @@
                     let studentAnsObj = answersObj[idx]?.answer || "";
                     let modelAns = (q.modelAnswer || "").trim().toLowerCase();
 
-                    // استخراج الحرف العربي الأول من إجابة الطالب (مثل: أ، ب، ج، د)
                     let studentFirstChar = studentAnsObj.trim().charAt(0); 
                     let modelFirstChar = modelAns.charAt(0);
 
@@ -332,37 +366,46 @@
                     teacherNotes: ''
                 };
 
-                localStorage.setItem('examSubmissions', JSON.stringify(submissions));
-                alert(translations[currentLang].successAlert);
-                renderExamPage();
+                try {
+                    // حفظ إجابة الطالب في Firebase بشكل دائم
+                    await setDoc(doc(db, "examData", "submissions"), { list: submissions });
+                    alert(translations[currentLang].successAlert);
+                    renderExamPage();
+                } catch(error) {
+                    console.error("Error submitting exam:", error);
+                    alert("حدث خطأ أثناء إرسال الامتحان للسيرفر.");
+                }
             }
         }
 
-        // تشغيل صفحة الامتحان فوراً
-        renderExamPage();
+        // إعداد المؤقت بدقة بحيث يعتمد الوقت الجديد من إعدادات الأستاذ فوراً
+        // إعداد المؤقت بحيث يبدأ دائماً من المدة الكاملة المحددة عند كل تحديث (Refresh) للصفحة
+        function initTimer() {
+            let durationMinutes = parseInt(examSettings.duration) || 10;
+            let totalSeconds = durationMinutes * 60;
 
-        // نظام المؤقت السليم والمنظم
-        let durationMinutes = parseInt(examSettings.duration) || 10;
-        let savedSeconds = localStorage.getItem('examRemainingSeconds');
-        let totalSeconds = (savedSeconds !== null && parseInt(savedSeconds) > 0) ? parseInt(savedSeconds) : (durationMinutes * 60);
+            // مسح أي وقت قديم مخزن لضمان بدء العد من جديد دائماً عند تحديث الصفحة
+            localStorage.removeItem('examRemainingSeconds');
+            localStorage.removeItem('lastExamDuration');
 
-        let timerInterval = setInterval(() => {
-            if (totalSeconds <= 0) {
-                clearInterval(timerInterval);
-                localStorage.removeItem('examRemainingSeconds');
-                alert(currentLang === 'ar' ? "انتهى وقت الامتحان!" : "Exam time ended!");
-                return;
-            }
-            totalSeconds--;
-            localStorage.setItem('examRemainingSeconds', totalSeconds);
+            let timerInterval = setInterval(() => {
+                if (totalSeconds <= 0) {
+                    clearInterval(timerInterval);
+                    alert(currentLang === 'ar' ? "انتهى وقت الامتحان!" : "Exam time ended!");
+                    return;
+                }
+                totalSeconds--;
 
-            let m = Math.floor(totalSeconds / 60);
-            let s = totalSeconds % 60;
-            let timerElem = document.getElementById('time-left');
-            if (timerElem) {
-                timerElem.innerText = m.toString().padStart(2, '0') + ":" + s.toString().padStart(2, '0');
-            }
-        }, 1000);
+                let m = Math.floor(totalSeconds / 60);
+                let s = totalSeconds % 60;
+                let timerElem = document.getElementById('time-left');
+                if (timerElem) {
+                    timerElem.innerText = m.toString().padStart(2, '0') + ":" + s.toString().padStart(2, '0');
+                }
+            }, 1000);
+        }
+
+        window.toggleLanguage = toggleLanguage;
     </script>
 </body>
 </html>
