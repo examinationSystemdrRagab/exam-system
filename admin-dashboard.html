@@ -8,6 +8,16 @@
 </head>
 <body class="bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900 min-h-screen p-4 flex flex-col items-center text-white">
 
+    <!-- نافذة طلب كلمة المرور للأدمن (تختفي فور إدخال الباسورد الصحيح) -->
+    <div id="admin-auth-modal" class="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 z-50">
+        <div class="bg-slate-900 border border-white/20 max-w-sm w-full p-6 rounded-2xl space-y-4 text-center shadow-2xl">
+            <h2 class="text-xl font-bold text-purple-300">تسجيل دخول الأستاذ</h2>
+            <p class="text-xs text-gray-300">يرجى إدخال كلمة المرور الخاصة بلوحة التحكم للادخال:</p>
+            <input type="password" id="admin-password-input" class="w-full bg-black/50 border border-white/20 rounded-lg p-3 text-white text-sm text-center focus:outline-none focus:border-purple-500" placeholder="كلمة المرور...">
+            <button onclick="verifyAdminPassword()" class="w-full bg-purple-600 hover:bg-purple-500 py-2.5 rounded-lg font-bold text-white transition text-sm">دخول لوحة التحكم</button>
+        </div>
+    </div>
+
     <div class="max-w-4xl w-full bg-white/10 backdrop-blur-md border border-white/20 p-6 rounded-2xl shadow-2xl relative space-y-6">
         
         <!-- زرار تبديل اللغة -->
@@ -135,6 +145,25 @@
     <script type="module">
         import { db, doc, setDoc, getDoc, updateDoc, deleteDoc, collection, getDocs } from "./firebase.js";
 
+        // كلمة المرور الخاصة بالأدمن (يمكنك تغييرها هنا إلى ما ترغبين به)
+        const ADMIN_PASSWORD = "admin123"; 
+
+        // التحقق مما إذا كان الأدمن قد قام بتسجيل الدخول مسبقاً في هذه الجلسة
+        if (sessionStorage.getItem('isAdminLoggedIn') === 'true') {
+            document.getElementById('admin-auth-modal').classList.add('hidden');
+        }
+
+        window.verifyAdminPassword = function() {
+            let enteredPass = document.getElementById('admin-password-input').value;
+            if (enteredPass === ADMIN_PASSWORD) {
+                sessionStorage.setItem('isAdminLoggedIn', 'true');
+                document.getElementById('admin-auth-modal').classList.add('hidden');
+                loadDataFromFirebase(); // تحميل بيانات الأدمن بعد نجاح كلمة المرور
+            } else {
+                alert(adminLang === 'ar' ? "كلمة المرور غير صحيحة!" : "Incorrect password!");
+            }
+        };
+
         let adminLang = localStorage.getItem('adminLang') || 'ar';
         let examSettings = { duration: 10, status: 'متاح للطلاب' };
         let questions = [];
@@ -239,7 +268,6 @@
         // جلب البيانات من فايربيس عند فتح الصفحة
         async function loadDataFromFirebase() {
             try {
-                // جلب الإعدادات
                 let settingsSnap = await getDoc(doc(db, "settings", "exam"));
                 if (settingsSnap.exists()) {
                     examSettings = settingsSnap.data();
@@ -247,13 +275,11 @@
                     document.getElementById('exam-status').value = examSettings.status || 'متاح للطلاب';
                 }
 
-                // جلب الأسئلة
                 let questionsSnap = await getDoc(doc(db, "examData", "questionsBank"));
                 if (questionsSnap.exists() && questionsSnap.data().list) {
                     questions = questionsSnap.data().list;
                 }
 
-                // جلب الطلاب والتسليمات (إذا كانت مخزنة في مجموعات فايربيس أو كوثائق موحدة)
                 let studentsSnap = await getDoc(doc(db, "examData", "studentsDB"));
                 if (studentsSnap.exists()) {
                     studentsDB = studentsSnap.data().list || {};
@@ -274,7 +300,10 @@
             renderRegisteredStudents();
         }
 
-        loadDataFromFirebase();
+        // إذا كان مسجل دخول مسبقاً في الجلسة، نحمل البيانات فوراً
+        if (sessionStorage.getItem('isAdminLoggedIn') === 'true') {
+            loadDataFromFirebase();
+        }
 
         async function saveExamSettings() {
             let durationInput = document.getElementById('exam-duration');
@@ -331,7 +360,6 @@
                 
                 alert(adminLang === 'ar' ? "تمت إضافة السؤال أونلاين بنجاح!" : "Question added online successfully!");
                 
-                // تفريغ الحقول بعد الإضافة الم الناجحة
                 document.getElementById('q-text').value = "";
                 document.getElementById('q-model').value = "";
                 for (let i = 0; i < 4; i++) { document.getElementById('opt-' + i).value = ""; }
