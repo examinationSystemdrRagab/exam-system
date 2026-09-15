@@ -7,22 +7,18 @@
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900 min-h-screen flex items-center justify-center p-4 relative">
-
     <div class="absolute top-4 left-4">
         <button onclick="toggleLanguage()" id="lang-btn" class="bg-purple-600/50 hover:bg-purple-600 text-xs px-3 py-1.5 rounded-lg border border-white/20 transition font-bold text-white">English</button>
     </div>
-
     <div class="max-w-md w-full bg-white/10 backdrop-blur-md border border-white/20 p-8 rounded-2xl shadow-2xl">
         <div class="text-center mb-6">
             <h1 id="main-title" class="text-2xl font-bold text-purple-300">منصة الامتحانات الذكية</h1>
             <p id="main-subtitle" class="text-gray-300 text-sm mt-1">نظام تصحيح ذكي ومتابعة فورية</p>
         </div>
-
         <div class="flex bg-black/30 p-1 rounded-xl mb-6">
             <button id="tab-login" onclick="switchTab('login')" class="flex-1 py-2 text-sm font-bold rounded-lg transition bg-purple-600 text-white">تسجيل الدخول</button>
             <button id="tab-signup" onclick="switchTab('signup')" class="flex-1 py-2 text-sm font-bold rounded-lg transition text-gray-400">إنشاء حساب</button>
         </div>
-
         <div id="form-login" class="space-y-4">
             <div>
                 <label id="lbl-login-name" class="block text-sm text-gray-300 mb-1">الاسم الكامل:</label>
@@ -38,7 +34,6 @@
             </div>
             <button onclick="handleLogin()" id="btn-login-submit" class="w-full bg-purple-600 hover:bg-purple-500 transition py-3 rounded-lg font-bold shadow-lg text-white">تسجيل الدخول</button>
         </div>
-
         <div id="form-signup" class="space-y-4 hidden">
             <div>
                 <label id="lbl-su-name" class="block text-sm text-gray-300 mb-1">الاسم الكامل:</label>
@@ -67,12 +62,9 @@
             <button onclick="handleSignup()" id="btn-su-submit" class="w-full bg-purple-600 hover:bg-purple-500 transition py-3 rounded-lg font-bold shadow-lg text-white">إنشاء الحساب</button>
         </div>
     </div>
-
     <script type="module">
         import { db, doc, setDoc, getDoc } from "./firebase.js";
-
         let currentLang = localStorage.getItem('siteLang') || 'ar';
-
         const dict = {
             ar: {
                 title: "منصة الامتحانات الذكية - تسجيل الدخول",
@@ -121,7 +113,6 @@
                 alertServer: "Server connection error, please try again."
             }
         };
-
         function toggleLanguage() {
             currentLang = currentLang === 'ar' ? 'en' : 'ar';
             localStorage.setItem('siteLang', currentLang);
@@ -132,18 +123,15 @@
             let root = document.getElementById('html-root');
             root.setAttribute('dir', currentLang === 'ar' ? 'rtl' : 'ltr');
             root.setAttribute('lang', currentLang);
-
             document.getElementById('page-title').innerText = t.title;
             document.getElementById('main-title').innerText = t.mainTitle;
             document.getElementById('main-subtitle').innerText = t.subtitle;
             document.getElementById('tab-login').innerText = t.tabLogin;
             document.getElementById('tab-signup').innerText = t.tabSignup;
-            
             document.getElementById('lbl-login-name').innerText = t.loginName;
             document.getElementById('lbl-login-id').innerText = t.loginId;
             document.getElementById('lbl-login-pass').innerText = t.loginPass;
             document.getElementById('btn-login-submit').innerText = t.loginBtn;
-
             document.getElementById('lbl-su-name').innerText = t.suName;
             document.getElementById('lbl-su-sphone').innerText = t.suSPhone;
             document.getElementById('lbl-su-fphone').innerText = t.suFPhone;
@@ -153,15 +141,12 @@
             document.getElementById('btn-su-submit').innerText = t.suBtn;
             document.getElementById('lang-btn').innerText = currentLang === 'ar' ? 'English' : 'عربي';
         }
-
         applyLang();
-
         function switchTab(tab) {
             const loginForm = document.getElementById('form-login');
             const signupForm = document.getElementById('form-signup');
             const loginBtn = document.getElementById('tab-login');
             const signupBtn = document.getElementById('tab-signup');
-
             if (tab === 'login') {
                 loginForm.classList.remove('hidden');
                 signupForm.classList.add('hidden');
@@ -174,7 +159,6 @@
                 loginBtn.className = "flex-1 py-2 text-sm font-bold rounded-lg transition text-gray-400";
             }
         }
-
         async function handleSignup() {
             let name = document.getElementById('signup_name').value.trim();
             let sphone = document.getElementById('signup_sphone').value.trim();
@@ -183,28 +167,23 @@
             let id = document.getElementById('signup_id').value.trim();
             let pass = document.getElementById('signup_pass').value.trim();
             let t = dict[currentLang];
-
             if(!name || !id || !pass) {
                 alert(t.alertFill);
                 return;
             }
-
             try {
                 let studentsSnap = await getDoc(doc(db, "examData", "studentsDB"));
                 let users = {};
                 if (studentsSnap.exists() && studentsSnap.data().list) {
                     users = studentsSnap.data().list;
                 }
-
                 if(users[id]) {
                     alert(t.alertExist);
                     switchTab('login');
                     return;
                 }
-
                 users[id] = { name, sphone, fphone, email, id, password: pass };
                 await setDoc(doc(db, "examData", "studentsDB"), { list: users });
-
                 alert(t.alertSuccess);
                 switchTab('login');
             } catch (error) {
@@ -212,30 +191,25 @@
                 alert(t.alertServer);
             }
         }
-
         async function handleLogin() {
             let name = document.getElementById('login_name').value.trim();
             let id = document.getElementById('login_id').value.trim();
             let pass = document.getElementById('login_pass').value.trim();
             let t = dict[currentLang];
-
             if(!name || !id || !pass) {
                 alert(t.alertFill);
                 return;
             }
-
             try {
                 let studentsSnap = await getDoc(doc(db, "examData", "studentsDB"));
                 let users = {};
                 if (studentsSnap.exists() && studentsSnap.data().list) {
                     users = studentsSnap.data().list;
                 }
-
                 if(!users[id] || users[id].password !== pass || users[id].name !== name) {
                     alert(t.alertError);
                     return;
                 }
-
                 localStorage.setItem('currentStudentID', id);
                 localStorage.setItem('currentStudentName', users[id].name);
                 window.location.href = "exam.html";
@@ -244,7 +218,6 @@
                 alert(t.alertServer);
             }
         }
-
         window.toggleLanguage = toggleLanguage;
         window.switchTab = switchTab;
         window.handleSignup = handleSignup;
