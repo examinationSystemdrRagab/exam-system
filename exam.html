@@ -367,9 +367,9 @@
             let totalQ = questions.length;
             let openaiApiKey = localStorage.getItem('openaiApiKey') || '';
 
-            let processedCount = 0;
-
-            questions.forEach((q, index) => {
+            // جمع الإجابات والصور بانتظام وثبات تام
+            for (let index = 0; index < totalQ; index++) {
+                let q = questions[index];
                 let ans = "";
                 if (q.type === 'mcq') {
                     let selected = document.querySelector('input[name="q_' + index + '"]:checked');
@@ -379,37 +379,32 @@
                     ans = textareaElem ? textareaElem.value : "";
                 }
                 
+                let imgBase64 = null;
                 let fileInput = document.getElementById('file_' + index);
                 if (fileInput && fileInput.files && fileInput.files[0]) {
                     let file = fileInput.files[0];
                     if (file.type.startsWith('image/')) {
-                        compressImage(file).then(compressedBase64 => {
-                            studentAnswers[index] = { answer: ans, image: compressedBase64 };
-                            processGrading(studentAnswers, totalQ, openaiApiKey, ++processedCount);
-                        });
+                        imgBase64 = await compressImage(file);
                     } else {
-                        let reader = new FileReader();
-                        reader.onload = function(uploadEvent) {
-                            studentAnswers[index] = { answer: ans, image: uploadEvent.target.result };
-                            processGrading(studentAnswers, totalQ, openaiApiKey, ++processedCount);
-                        };
-                        reader.readAsDataURL(file);
+                        imgBase64 = await new Promise((resolve) => {
+                            let reader = new FileReader();
+                            reader.onload = e => resolve(e.target.result);
+                            reader.readAsDataURL(file);
+                        });
                     }
-                } else {
-                    studentAnswers[index] = { answer: ans, image: null };
-                    processGrading(studentAnswers, totalQ, openaiApiKey, ++processedCount);
                 }
-            });
-        };
 
-        async function processGrading(answersObj, totalQ, openaiApiKey, count) {
-            if (count < totalQ) return;
+                studentAnswers[index] = {
+                    answer: ans,
+                    image: imgBase64
+                };
+            }
 
             let totalCalculatedScore = 0;
 
-            for (let qIdx = 0; qIdx < questions.length; qIdx++) {
+            for (let qIdx = 0; qIdx < totalQ; qIdx++) {
                 let q = questions[qIdx];
-                let ansObj = answersObj[qIdx];
+                let ansObj = studentAnswers[qIdx];
 
                 if (q.type === 'mcq') {
                     let studentFirstChar = (ansObj?.answer || "").trim().charAt(0);
@@ -479,7 +474,7 @@ Provide your evaluation in the following strict JSON format without markdown tic
                             
                             ansObj.aiAwardedPoints = aiResult.awardedPoints || 0;
                             ansObj.aiEvaluation = aiResult.feedback || (currentLang === 'ar' ? "تم التصحيح بناءً على مطابقة هينت الأستاذ." : "Graded based on instructor hint match.");
-                            totalCalculatedScore += aiResult.awardedPoints;
+                            totalCalculatedScore += ansObj.aiAwardedPoints;
                         }
                     } catch (err) {
                         console.error("OpenAI Error:", err);
@@ -492,7 +487,7 @@ Provide your evaluation in the following strict JSON format without markdown tic
             submissions[studentID] = {
                 studentId: studentID,
                 studentName: studentName,
-                answers: answersObj,
+                answers: studentAnswers,
                 autoScore: totalCalculatedScore,
                 finalScore: totalCalculatedScore,
                 status: 'معتمد',
@@ -507,7 +502,7 @@ Provide your evaluation in the following strict JSON format without markdown tic
             } catch(error) {
                 console.error("Error saving automatic submission:", error);
             }
-        }
+        };
 
         function initTimer() {
             let durationMinutes = parseInt(examSettings.duration) || 10;
