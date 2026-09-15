@@ -51,14 +51,14 @@
                 noQuestions: "لا توجد أسئلة مضافة في الامتحان حالياً.",
                 notAvailable: "الامتحان غير متاح حالياً، يرجى الانتظار لحين فتحه من قبل أستاذ المادة.",
                 submitBtn: "تسليم الإجابات وإنهاء الامتحان",
-                successAlert: "تم تسليم الامتحان بنجاح!",
+                successAlert: "تم تسليم الامتحان وتصحيحه بنجاح!",
                 gradedTitle: "تم تصحيح امتحانك ورصد درجتك أوتوماتيكياً بواسطة الـ AI",
                 finalScoreText: "الدرجة النهـائية: ",
                 fromText: " من ",
                 detailedFeedbackTitle: "التصحيح المفصل والتعليقات:",
-                pendingTitle: "تم تسليم إجاباتك بنجاح!",
-                pendingStatus: "جاري التصحيح التلقائي بالذكاء الاصطناعي",
-                pendingSub: "يرجى الانتظار لحظات حتى يتم رصد الدرجة والتقييم المفصل.",
+                pendingTitle: "جاري التصحيح التلقائي...",
+                pendingStatus: "يتم فحص إجاباتك الآن بواسطة الـ AI",
+                pendingSub: "يرجى الانتظار لحظات حتى تظهر النتيجة.",
                 uploadImgLabel: "رفع صورة أو ملف PDF للإجابة المكتوبة بخط اليد:",
                 essayPlaceholder: "اكتب إجابتك النصية هنا..."
             },
@@ -70,14 +70,14 @@
                 noQuestions: "No questions available for this exam currently.",
                 notAvailable: "The exam is currently closed. Please wait for the instructor to open it.",
                 submitBtn: "Submit Answers & Finish Exam",
-                successAlert: "Exam submitted successfully!",
+                successAlert: "Exam submitted and graded successfully!",
                 gradedTitle: "Your exam has been graded automatically by AI",
                 finalScoreText: "Final Score: ",
                 fromText: " out of ",
                 detailedFeedbackTitle: "Detailed AI Feedback & Evaluation:",
-                pendingTitle: "Your answers have been submitted successfully!",
-                pendingStatus: "Under automatic AI evaluation",
-                pendingSub: "Please wait a moment for your grade and detailed feedback.",
+                pendingTitle: "Evaluating automatically...",
+                pendingStatus: "Your answers are being evaluated by AI",
+                pendingSub: "Please wait a moment for your results.",
                 uploadImgLabel: "Upload handwriting image or PDF file for answer:",
                 essayPlaceholder: "Type your text answer here..."
             }
@@ -169,7 +169,6 @@
                     scoreCard.innerHTML = '<p class="text-md">' + t.finalScoreText + '<span class="font-bold text-yellow-400 text-xl">' + sub.finalScore + '</span>' + t.fromText + totalPoints + '</p>';
                     box.appendChild(scoreCard);
 
-                    // عرض تفاصيل التصحيح المفصل لكل سؤال للطالب
                     let feedbackBox = document.createElement('div');
                     feedbackBox.className = "text-right space-y-3 mt-4 bg-black/20 p-4 rounded-xl border border-white/10 text-xs";
                     
@@ -320,12 +319,24 @@
 
         function submitExam(e) {
             e.preventDefault();
-            triggerAutomaticSubmission();
+            window.triggerAutomaticSubmission();
         }
 
-        window.triggerAutomaticSubmission = function() {
+        window.triggerAutomaticSubmission = async function() {
+            let container = document.getElementById('exam-container');
+            container.innerHTML = `
+                <div class="text-center py-10 space-y-4">
+                    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-400 mx-auto"></div>
+                    <h2 class="text-xl font-bold text-yellow-300">جاري تصحيح الامتحان بالذكاء الاصطناعي...</h2>
+                    <p class="text-xs text-gray-400">يرجى الانتظار لحظات حتى تظهر نتيجتك النهائية.</p>
+                </div>
+            `;
+
             let studentAnswers = {};
             let totalQ = questions.length;
+            let openaiApiKey = localStorage.getItem('openaiApiKey') || '';
+
+            let processedCount = 0;
 
             questions.forEach((q, index) => {
                 let ans = "";
@@ -341,42 +352,121 @@
                 if (fileInput && fileInput.files && fileInput.files[0]) {
                     let reader = new FileReader();
                     reader.onload = function(uploadEvent) {
-                        finalizeSubmission(studentAnswers, index, ans, uploadEvent.target.result, totalQ);
+                        studentAnswers[index] = { answer: ans, image: uploadEvent.target.result };
+                        processGrading(studentAnswers, totalQ, openaiApiKey, ++processedCount);
                     };
                     reader.readAsDataURL(fileInput.files[0]);
                 } else {
-                    finalizeSubmission(studentAnswers, index, ans, null, totalQ);
+                    studentAnswers[index] = { answer: ans, image: null };
+                    processGrading(studentAnswers, totalQ, openaiApiKey, ++processedCount);
                 }
             });
-        }
+        };
 
-        async function finalizeSubmission(answersObj, qIndex, answerValue, imageBase64, totalQ) {
-            answersObj[qIndex] = {
-                answer: answerValue,
-                image: imageBase64 || null
-            };
-            
-            let currentProcessed = Object.keys(answersObj).length;
+        async function processGrading(answersObj, totalQ, openaiApiKey, count) {
+            if (count < totalQ) return;
 
-            if (currentProcessed === totalQ) {
-                submissions[studentID] = {
-                    studentId: studentID,
-                    studentName: studentName,
-                    answers: answersObj,
-                    autoScore: 0,
-                    finalScore: 0,
-                    status: 'قيد المراجعة بالـ AI',
-                    graded: false,
-                    teacherNotes: ''
-                };
+            let totalCalculatedScore = 0;
 
-                try {
-                    await setDoc(doc(db, "examData", "submissions"), { list: submissions });
-                    alert(translations[currentLang].successAlert);
-                    renderExamPage();
-                } catch(error) {
-                    console.error("Error submitting exam:", error);
+            for (let qIdx = 0; qIdx < questions.length; qIdx++) {
+                let q = questions[qIdx];
+                let ansObj = answersObj[qIdx];
+
+                if (q.type === 'mcq') {
+                    let studentFirstChar = (ansObj?.answer || "").trim().charAt(0);
+                    let modelFirstChar = (q.modelAnswer || "").trim().charAt(0);
+                    if (studentFirstChar === modelFirstChar && modelFirstChar !== "") {
+                        totalCalculatedScore += (q.points || 5);
+                        ansObj.aiAwardedPoints = q.points || 5;
+                        ansObj.aiEvaluation = currentLang === 'ar' ? "تم تصحيح السؤال الاختياري بنجاح ومطابقته للإجابة النموذجية." : "MCQ graded successfully and matched model answer.";
+                    } else {
+                        ansObj.aiAwardedPoints = 0;
+                        ansObj.aiEvaluation = currentLang === 'ar' ? "إجابة خاطئة لم تتطابق مع الاختيار النموذجي." : "Incorrect answer, did not match model choice.";
+                    }
+                } else if (q.type === 'essay') {
+                    if (!openaiApiKey) {
+                        ansObj.aiAwardedPoints = 0;
+                        ansObj.aiEvaluation = currentLang === 'ar' ? "لم يتم إدخال مفتاح الـ AI، بانتظار المراجعة." : "API key missing.";
+                        continue;
+                    }
+
+                    let langInstruction = (currentLang === 'ar') 
+                        ? 'Provide a detailed explanation in Arabic of why this grade was given and how it compares to the model answer.' 
+                        : 'Provide a detailed explanation in English of why this grade was given and how it compares to the model answer.';
+
+                    let promptText = `You are an expert AI exam grader. Evaluate the student's answer for the essay question based on the instructor's hint/model answer and question context. ${langInstruction}
+Question Text: "${q.text}"
+Instructor's Hint/Model Answer Text: "${q.essayHintText || 'No text hint provided'}"
+Student's Answer Text: "${ansObj?.answer || 'No text answer'}"
+Total Question Points: ${q.points || 5}
+
+Provide your evaluation in the following strict JSON format without markdown ticks:
+{
+  "awardedPoints": [number between 0 and total points],
+  "feedback": "[Detailed explanation of the evaluation, what was correct, what was missing, and why this score was awarded based on the hint, written in the requested language (${currentLang})]"
+}`;
+
+                    let contentMessages = [{ type: "text", text: promptText }];
+
+                    if (q.questionFileBase64) {
+                        contentMessages.push({ type: "image_url", image_url: { url: q.questionFileBase64 } });
+                    }
+                    if (q.hintFileBase64) {
+                        contentMessages.push({ type: "image_url", image_url: { url: q.hintFileBase64 } });
+                    }
+                    if (ansObj?.image) {
+                        contentMessages.push({ type: "image_url", image_url: { url: ansObj.image } });
+                    }
+
+                    try {
+                        let response = await fetch("https://api.openai.com/v1/chat/completions", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                                "Authorization": "Bearer " + openaiApiKey
+                            },
+                            body: JSON.stringify({
+                                model: "gpt-4o",
+                                messages: [{ role: "user", content: contentMessages }],
+                                max_tokens: 600
+                            })
+                        });
+
+                        let data = await response.json();
+                        if (data.choices && data.choices[0]) {
+                            let resultStr = data.choices[0].message.content.trim();
+                            resultStr = resultStr.replace(/```json/g, '').replace(/```/g, '').trim();
+                            let aiResult = JSON.parse(resultStr);
+                            
+                            ansObj.aiAwardedPoints = aiResult.awardedPoints || 0;
+                            ansObj.aiEvaluation = aiResult.feedback || (currentLang === 'ar' ? "تم التصحيح بناءً على مطابقة هينت الأستاذ." : "Graded based on instructor hint match.");
+                            totalCalculatedScore += aiResult.awardedPoints;
+                        }
+                    } catch (err) {
+                        console.error("OpenAI Error:", err);
+                        ansObj.aiAwardedPoints = 0;
+                        ansObj.aiEvaluation = currentLang === 'ar' ? "حدث خطأ أثناء الاتصال بالذكاء الاصطناعي." : "Error connecting to AI.";
+                    }
                 }
+            }
+
+            submissions[studentID] = {
+                studentId: studentID,
+                studentName: studentName,
+                answers: answersObj,
+                autoScore: totalCalculatedScore,
+                finalScore: totalCalculatedScore,
+                status: 'معتمد',
+                graded: true,
+                teacherNotes: currentLang === 'ar' ? "تم التصحيح ورصد الدرجة تلقائياً بواسطة الـ AI." : "Graded and scored automatically by AI."
+            };
+
+            try {
+                await setDoc(doc(db, "examData", "submissions"), { list: submissions });
+                alert(translations[currentLang].successAlert);
+                renderExamPage();
+            } catch(error) {
+                console.error("Error saving automatic submission:", error);
             }
         }
 
@@ -392,17 +482,10 @@
                     clearInterval(timerInterval);
                     alert("انتهى وقت الامتحان! سيتم قفل الامتحان وتسليم إجاباتك أوتوماتيكياً الآن.");
                     
-                    // 1. تسليم الامتحان أوتوماتيكياً
                     window.triggerAutomaticSubmission();
                     
-                    // 2. إخفاء نموذج الأسئلة فوراً وقفل الصفحة لمنع أي حل إضافي
                     let form = document.getElementById('submit-form');
                     if(form) form.innerHTML = '<div class="text-center py-10 text-red-400 font-bold text-lg">انتهى وقت الامتحان وتم قفل الصفحة بنجاح!</div>';
-
-                    // 3. إعادة تحميل الصفحة بعد ثوانٍ بسيطة لتظهر صفحة الانتظار والنتيجة
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 2000);
 
                     return;
                 }

@@ -565,15 +565,16 @@
         }
 
         // دالة تصحيح الـ AI ورصد الدرجة وإرسال التعليق المفصل للطالب فوراً
+        // دالة تصحيح الـ AI ورصد الدرجة وإرسال التعليق المفصل باللغة الحالية للوحة التحكم
         window.runAIGrading = async function() {
             if (!openaiApiKey) {
-                alert("يرجى إدخال مفتاح OpenAI API Key أولاً في إعدادات الصفحة بالأعلى!");
+                alert(adminLang === 'ar' ? "يرجى إدخال مفتاح OpenAI API Key أولاً في إعدادات الصفحة بالأعلى!" : "Please enter OpenAI API Key in settings first!");
                 return;
             }
             if (!activeGradingStudentID) return;
 
             let sub = submissions[activeGradingStudentID];
-            document.getElementById('ai-status-text').innerText = "جاري التصحيح المفصل ورصد الدرجة تلقائياً...";
+            document.getElementById('ai-status-text').innerText = adminLang === 'ar' ? "جاري التصحيح المفصل ورصد الدرجة تلقائياً..." : "Processing detailed AI grading...";
 
             let totalCalculatedScore = 0;
 
@@ -587,13 +588,19 @@
                     if (studentFirstChar === modelFirstChar && modelFirstChar !== "") {
                         totalCalculatedScore += (q.points || 5);
                         ansObj.aiAwardedPoints = q.points || 5;
-                        ansObj.aiEvaluation = "تم تصحيح السؤال الاختياري بنجاح ومطابقته للإجابة النموذجية.";
+                        ansObj.aiEvaluation = adminLang === 'ar' ? "تم تصحيح السؤال الاختياري بنجاح ومطابقته للإجابة النموذجية." : "MCQ graded successfully and matched model answer.";
                     } else {
                         ansObj.aiAwardedPoints = 0;
-                        ansObj.aiEvaluation = "إجابة خاطئة لم تتطابق مع الاختيار النموذجي.";
+                        ansObj.aiEvaluation = adminLang === 'ar' ? "إجابة خاطئة لم تتطابق مع الاختيار النموذجي." : "Incorrect answer, did not match model choice.";
                     }
                 } else if (q.type === 'essay') {
-                    let promptText = `You are an expert AI exam grader. Evaluate the student's answer for the essay question based on the instructor's hint/model answer and question context. Provide a detailed explanation in Arabic of why this grade was given and how it compares to the model answer.
+                    // تحديد لغة التعليق والتقييم بناءً على لغة واجهة لوحة التحكم الحالية
+                    let activeLang = adminLang || 'ar';
+                    let langInstruction = (activeLang === 'ar') 
+                        ? 'Provide a detailed explanation in Arabic of why this grade was given and how it compares to the model answer.' 
+                        : 'Provide a detailed explanation in English of why this grade was given and how it compares to the model answer.';
+
+                    let promptText = `You are an expert AI exam grader. Evaluate the student's answer for the essay question based on the instructor's hint/model answer and question context. ${langInstruction}
 Question Text: "${q.text}"
 Instructor's Hint/Model Answer Text: "${q.essayHintText || 'No text hint provided'}"
 Student's Answer Text: "${ansObj?.answer || 'No text answer'}"
@@ -602,7 +609,7 @@ Total Question Points: ${q.points || 5}
 Provide your evaluation in the following strict JSON format without markdown ticks:
 {
   "awardedPoints": [number between 0 and total points],
-  "feedback": "[Detailed Arabic explanation of the evaluation, what was correct, what was missing, and why this score was awarded based on the hint]"
+  "feedback": "[Detailed explanation of the evaluation, what was correct, what was missing, and why this score was awarded based on the hint, written in the requested language (${activeLang})]"
 }`;
 
                     let contentMessages = [{ type: "text", text: promptText }];
@@ -638,32 +645,31 @@ Provide your evaluation in the following strict JSON format without markdown tic
                             let aiResult = JSON.parse(resultStr);
                             
                             ansObj.aiAwardedPoints = aiResult.awardedPoints || 0;
-                            ansObj.aiEvaluation = aiResult.feedback || "تم التصحيح بناءً على مطابقة هينت الأستاذ.";
+                            ansObj.aiEvaluation = aiResult.feedback || (adminLang === 'ar' ? "تم التصحيح بناءً على مطابقة هينت الأستاذ." : "Graded based on instructor hint match.");
                             totalCalculatedScore += ansObj.aiAwardedPoints;
                         }
                     } catch (err) {
                         console.error("OpenAI Error:", err);
                         ansObj.aiAwardedPoints = 0;
-                        ansObj.aiEvaluation = "حدث خطأ أثناء الاتصال بالذكاء الاصطناعي.";
+                        ansObj.aiEvaluation = adminLang === 'ar' ? "حدث خطأ أثناء الاتصال بالذكاء الاصطناعي." : "Error connecting to AI.";
                     }
                 }
             }
 
-            // رصد الدرجة أوتوماتيكياً للطالب وتغيير الحالة إلى "معتمد" فوراً
             sub.autoScore = totalCalculatedScore;
             sub.finalScore = totalCalculatedScore;
             sub.aiEvaluated = true;
             sub.graded = true;
             sub.status = 'معتمد';
-            sub.teacherNotes = "تم رصد وتصحيح الامتحان تلقائياً ومفصلاً بواسطة الذكاء الاصطناعي.";
+            sub.teacherNotes = adminLang === 'ar' ? "تم رصد وتصحيح الامتحان تلقائياً ومفصلاً بواسطة الذكاء الاصطناعي." : "Exam graded and recorded automatically by AI.";
 
             document.getElementById('modal-final-score').value = sub.finalScore;
-            document.getElementById('ai-status-text').innerText = "تم التصحيح ورصد الدرجة وإرسالها للطالب بنجاح!";
+            document.getElementById('ai-status-text').innerText = adminLang === 'ar' ? "تم التصحيح ورصد الدرجة وإرسالها للطالب بنجاح!" : "Graded, scored and sent to student successfully!";
             renderModalAnswers(sub);
 
             await setDoc(doc(db, "examData", "submissions"), { list: submissions });
             renderSubmissionsList();
-            alert("تم تصحيح الامتحان ورصد الدرجة النهائية للطالب أوتوماتيكياً بنجاح!");
+            alert(adminLang === 'ar' ? "تم تصحيح الامتحان ورصد الدرجة النهائية للطالب أوتوماتيكياً بنجاح!" : "Exam graded and final score assigned to student automatically!");
         };
 
         function closeModal() {
