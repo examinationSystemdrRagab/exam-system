@@ -8,11 +8,11 @@
 </head>
 <body class="bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900 min-h-screen p-4 flex flex-col items-center text-white">
 
-    <!-- نافذة طلب كلمة المرور للأدمن (تختفي فور إدخال الباسورد الصحيح) -->
+    <!-- نافذة طلب كلمة المرور للأدمن -->
     <div id="admin-auth-modal" class="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 z-50">
         <div class="bg-slate-900 border border-white/20 max-w-sm w-full p-6 rounded-2xl space-y-4 text-center shadow-2xl">
             <h2 class="text-xl font-bold text-purple-300">تسجيل دخول الأستاذ</h2>
-            <p class="text-xs text-gray-300">يرجى إدخال كلمة المرور الخاصة بلوحة التحكم للادخال:</p>
+            <p class="text-xs text-gray-300">يرجى إدخال كلمة المرور الخاصة بلوحة التحكم:</p>
             <input type="password" id="admin-password-input" class="w-full bg-black/50 border border-white/20 rounded-lg p-3 text-white text-sm text-center focus:outline-none focus:border-purple-500" placeholder="كلمة المرور...">
             <button onclick="verifyAdminPassword()" class="w-full bg-purple-600 hover:bg-purple-500 py-2.5 rounded-lg font-bold text-white transition text-sm">دخول لوحة التحكم</button>
         </div>
@@ -28,7 +28,17 @@
         <!-- رأس الصفحة -->
         <div class="border-b border-white/20 pb-4">
             <h1 id="main-heading" class="text-2xl font-bold text-purple-300">لوحة تحكم أستاذ المادة</h1>
-            <p id="main-desc" class="text-sm text-gray-300 mt-1">إدارة الأسئلة، إعدادات الامتحان، ومراجعة درجات الطلاب.</p>
+            <p id="main-desc" class="text-sm text-gray-300 mt-1">إدارة الأسئلة، إعدادات الامتحان، ومراجعة وتصحيح الطلاب عبر الـ AI أوتوماتيكياً.</p>
+        </div>
+
+        <!-- إعدادات مفتاح الـ OpenAI API Key -->
+        <div class="bg-black/20 p-4 rounded-xl border border-white/10 space-y-3">
+            <h3 class="font-bold text-purple-200 text-sm">إعدادات مفتاح الذكاء الاصطناعي (OpenAI API Key)</h3>
+            <p class="text-xs text-gray-400">أدخل مفتاح OpenAI الخاص بك ليقوم النظام بتصحيح الأسئلة المقالية وإعطاء تقييم مفصل ورصد الدرجة للطالب فوراً.</p>
+            <div class="flex gap-2">
+                <input type="password" id="openai-api-key" class="w-full bg-black/40 border border-white/20 rounded-lg p-2 text-white text-sm focus:outline-none focus:border-purple-500" placeholder="sk-proj-...">
+                <button onclick="saveApiKey()" class="bg-purple-600 hover:bg-purple-500 text-xs px-4 py-2 rounded-lg font-bold whitespace-nowrap transition">حفظ المفتاح</button>
+            </div>
         </div>
 
         <!-- أزرار التحكم في التصفير -->
@@ -83,6 +93,7 @@
                 </div>
             </div>
 
+            <!-- خيارات MCQ -->
             <div id="mcq-options-container" class="space-y-2">
                 <label id="mcq-label" class="block text-xs text-gray-300">الخيارات (اختر الإجابة النموذجية بالحرف أ أو ب أو ج أو د):</label>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
@@ -91,17 +102,32 @@
                     <input type="text" id="opt-2" class="bg-black/40 border border-white/20 rounded-lg p-2 text-white text-sm" placeholder="الخيار الثالث">
                     <input type="text" id="opt-3" class="bg-black/40 border border-white/20 rounded-lg p-2 text-white text-sm" placeholder="الخيار الرابع">
                 </div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <label id="model-label" class="block text-xs text-gray-300 mb-1">الإجابة النموذجية (مثل: أ أو ب):</label>
+                    <label id="model-label" class="block text-xs text-gray-300 mb-1 mt-2">الإجابة النموذجية (مثل: أ أو ب):</label>
                     <input type="text" id="q-model" class="w-full bg-black/40 border border-white/20 rounded-lg p-2 text-white text-sm focus:outline-none focus:border-purple-500" placeholder="مثال: أ">
                 </div>
+            </div>
+
+            <!-- إعدادات السؤال المقالي (ملف السؤال + هينت الدكتور) -->
+            <div id="essay-options-container" class="space-y-3 hidden bg-black/30 p-3 rounded-lg border border-purple-500/30">
                 <div>
-                    <label id="points-label" class="block text-xs text-gray-300 mb-1">درجة السؤال:</label>
-                    <input type="number" id="q-points" class="w-full bg-black/40 border border-white/20 rounded-lg p-2 text-white text-sm focus:outline-none focus:border-purple-500" value="5">
+                    <label class="block text-xs text-purple-300 mb-1 font-bold">رفع صورة أو ملف PDF للسؤال نفسه (ليراها الطالب في الامتحان):</label>
+                    <input type="file" id="essay-question-file" accept="image/*,.pdf" class="text-xs text-gray-400 file:mr-4 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-500 cursor-pointer">
                 </div>
+
+                <div class="pt-2 border-t border-white/10">
+                    <label class="block text-xs font-bold text-purple-300 mb-1">هينت أو إجابة نموذجية للأستاذ (للمقارنة بالذكاء الاصطناعي):</label>
+                    <textarea id="essay-hint-text" rows="2" class="w-full bg-black/40 border border-white/20 rounded-lg p-2 text-white text-sm focus:outline-none focus:border-purple-500" placeholder="اكتب هينت أو نموذج الإجابة هنا..."></textarea>
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-300 mb-1">أو ارفع ملف (صورة أو PDF) يحتوي على هينت/إجابة الأستاذ:</label>
+                    <input type="file" id="essay-hint-file" accept="image/*,.pdf" class="text-xs text-gray-400 file:mr-4 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-500 cursor-pointer">
+                </div>
+            </div>
+
+            <div>
+                <label id="points-label" class="block text-xs text-gray-300 mb-1">درجة السؤال:</label>
+                <input type="number" id="q-points" class="w-full bg-black/40 border border-white/20 rounded-lg p-2 text-white text-sm focus:outline-none focus:border-purple-500" value="5">
             </div>
 
             <button onclick="addQuestion()" id="add-q-btn" class="w-full bg-green-600 hover:bg-green-500 text-sm py-2.5 rounded-lg font-bold transition">إضافة السؤال للبندك</button>
@@ -115,7 +141,7 @@
 
         <!-- تسليمات الطلاب -->
         <div class="bg-black/20 p-4 rounded-xl border border-white/10 space-y-3">
-            <h3 id="sub-list-title" class="font-bold text-purple-200">مراجعة تسليمات وإجابات الطلاب</h3>
+            <h3 id="sub-list-title" class="font-bold text-purple-200">مراجعة تسليمات وإجابات الطلاب والتصحيح بالـ AI</h3>
             <div id="submissions-list" class="space-y-2 max-h-60 overflow-y-auto"></div>
         </div>
 
@@ -126,18 +152,23 @@
         </div>
     </div>
 
-    <!-- Modal التصحيح -->
+    <!-- Modal التصحيح والمراجعة المفصلة -->
     <div id="grading-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
-        <div class="bg-slate-900 border border-white/20 max-w-lg w-full p-6 rounded-2xl space-y-4 relative text-white">
+        <div class="bg-slate-900 border border-white/20 max-w-xl w-full p-6 rounded-2xl space-y-4 relative text-white">
             <button onclick="closeModal()" class="absolute top-4 left-4 text-red-400 font-bold hover:text-red-300">إغلاق ✕</button>
             <h2 id="modal-student-title" class="text-lg font-bold text-purple-300 border-b border-white/10 pb-2"></h2>
+            
+            <div id="ai-grading-status" class="bg-purple-900/40 p-3 rounded-lg border border-purple-500/30 text-xs text-purple-200 flex justify-between items-center">
+                <span>حالة التصحيح: <span id="ai-status-text" class="font-bold text-yellow-300">جاهز للتصحيح المفصل</span></span>
+                <button onclick="runAIGrading()" id="run-ai-btn" class="bg-purple-600 hover:bg-purple-500 px-3 py-1.5 rounded font-bold transition">تشغيل تصحيح الـ AI ورصد الدرجة فوراً</button>
+            </div>
+
             <div id="modal-answers-container" class="space-y-3 max-h-72 overflow-y-auto text-xs pr-1"></div>
+            
             <div class="space-y-2 pt-2 border-t border-white/10">
-                <label class="block text-xs font-bold text-gray-300">الدرجة النهائية المعتمدة:</label>
-                <input type="number" id="modal-final-score" class="w-full bg-black/40 border border-white/20 rounded-lg p-2 text-white text-sm">
-                <label class="block text-xs font-bold text-gray-300">ملاحظات أستاذ المادة:</label>
-                <textarea id="modal-teacher-notes" rows="2" class="w-full bg-black/40 border border-white/20 rounded-lg p-2 text-white text-sm" placeholder="اكتب ملاحظاتك للطالب هنا..."></textarea>
-                <button onclick="saveStudentGrade()" class="w-full bg-blue-600 hover:bg-blue-500 py-2.5 rounded-lg font-bold text-white transition text-xs">اعتمد النتيجة ورصدها للطالب</button>
+                <label class="block text-xs font-bold text-gray-300">الدرجة النهائية المرصودة تلقائياً من الـ AI:</label>
+                <input type="number" id="modal-final-score" class="w-full bg-black/40 border border-white/20 rounded-lg p-2 text-white text-sm bg-black/50" readonly>
+                <button onclick="closeModal()" class="w-full bg-purple-600 hover:bg-purple-500 py-2.5 rounded-lg font-bold text-white transition text-xs">إغلاق النافذة</button>
             </div>
         </div>
     </div>
@@ -145,10 +176,8 @@
     <script type="module">
         import { db, doc, setDoc, getDoc, updateDoc, deleteDoc, collection, getDocs } from "./firebase.js";
 
-        // كلمة المرور الخاصة بالأدمن (يمكنك تغييرها هنا إلى ما ترغبين به)
         const ADMIN_PASSWORD = "admin123"; 
 
-        // التحقق مما إذا كان الأدمن قد قام بتسجيل الدخول مسبقاً في هذه الجلسة
         if (sessionStorage.getItem('isAdminLoggedIn') === 'true') {
             document.getElementById('admin-auth-modal').classList.add('hidden');
         }
@@ -158,9 +187,9 @@
             if (enteredPass === ADMIN_PASSWORD) {
                 sessionStorage.setItem('isAdminLoggedIn', 'true');
                 document.getElementById('admin-auth-modal').classList.add('hidden');
-                loadDataFromFirebase(); // تحميل بيانات الأدمن بعد نجاح كلمة المرور
+                loadDataFromFirebase();
             } else {
-                alert(adminLang === 'ar' ? "كلمة المرور غير صحيحة!" : "Incorrect password!");
+                alert("كلمة المرور غير صحيحة!");
             }
         };
 
@@ -170,6 +199,19 @@
         let studentsDB = {};
         let submissions = {};
         let activeGradingStudentID = null;
+        let openaiApiKey = localStorage.getItem('openaiApiKey') || '';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if(document.getElementById('openai-api-key')) {
+                document.getElementById('openai-api-key').value = openaiApiKey;
+            }
+        });
+
+        window.saveApiKey = function() {
+            openaiApiKey = document.getElementById('openai-api-key').value.trim();
+            localStorage.setItem('openaiApiKey', openaiApiKey);
+            alert("تم حفظ مفتاح OpenAI بنجاح!");
+        };
 
         const adminTranslations = {
             ar: {
@@ -218,15 +260,8 @@
                 root.setAttribute('dir', adminLang === 'ar' ? 'rtl' : 'ltr');
                 root.setAttribute('lang', adminLang);
             }
-
-            function safeSetText(id, text) {
-                let elem = document.getElementById(id);
-                if (elem) elem.innerText = text;
-            }
-            function safeSetPlaceholder(id, text) {
-                let elem = document.getElementById(id);
-                if (elem) elem.placeholder = text;
-            }
+            function safeSetText(id, text) { let elem = document.getElementById(id); if (elem) elem.innerText = text; }
+            function safeSetPlaceholder(id, text) { let elem = document.getElementById(id); if (elem) elem.placeholder = text; }
 
             safeSetText('page-title', t.title);
             safeSetText('main-heading', t.mainHeading);
@@ -260,12 +295,9 @@
             safeSetText('sub-list-title', t.subListTitle);
             safeSetText('students-list-title', t.studentsListTitle);
             let langBtn = document.getElementById('lang-btn');
-            if(langBtn) {
-                langBtn.innerText = adminLang === 'ar' ? 'English' : 'عربي';
-            }
+            if(langBtn) langBtn.innerText = adminLang === 'ar' ? 'English' : 'عربي';
         }
 
-        // جلب البيانات من فايربيس عند فتح الصفحة
         async function loadDataFromFirebase() {
             try {
                 let settingsSnap = await getDoc(doc(db, "settings", "exam"));
@@ -274,33 +306,27 @@
                     document.getElementById('exam-duration').value = examSettings.duration || 10;
                     document.getElementById('exam-status').value = examSettings.status || 'متاح للطلاب';
                 }
-
                 let questionsSnap = await getDoc(doc(db, "examData", "questionsBank"));
                 if (questionsSnap.exists() && questionsSnap.data().list) {
                     questions = questionsSnap.data().list;
                 }
-
                 let studentsSnap = await getDoc(doc(db, "examData", "studentsDB"));
                 if (studentsSnap.exists()) {
                     studentsDB = studentsSnap.data().list || {};
                 }
-
                 let submissionsSnap = await getDoc(doc(db, "examData", "submissions"));
                 if (submissionsSnap.exists()) {
                     submissions = submissionsSnap.data().list || {};
                 }
-
             } catch (error) {
                 console.error("Error loading data from Firebase:", error);
             }
-
             applyAdminLang();
             renderQuestionsList();
             renderSubmissionsList();
             renderRegisteredStudents();
         }
 
-        // إذا كان مسجل دخول مسبقاً في الجلسة، نحمل البيانات فوراً
         if (sessionStorage.getItem('isAdminLoggedIn') === 'true') {
             loadDataFromFirebase();
         }
@@ -308,66 +334,120 @@
         async function saveExamSettings() {
             let durationInput = document.getElementById('exam-duration');
             let statusInput = document.getElementById('exam-status');
-            
             examSettings = {
                 duration: durationInput ? parseInt(durationInput.value) || 10 : 10,
                 status: statusInput ? statusInput.value : 'متاح للطلاب'
             };
-
             try {
                 await setDoc(doc(db, "settings", "exam"), examSettings);
-                alert(adminLang === 'ar' ? "تم حفظ إعدادات الامتحان أونلاين بنجاح!" : "Exam settings saved online successfully!");
+                alert("تم حفظ إعدادات الامتحان أونلاين بنجاح!");
             } catch (error) {
                 console.error("Error saving settings: ", error);
-                alert("حدث خطأ أثناء الحفظ بالسيرفر.");
             }
         }
 
         function toggleQuestionType() {
             let type = document.getElementById('q-type').value;
-            let container = document.getElementById('mcq-options-container');
-            container.style.display = type === 'mcq' ? 'block' : 'none';
+            let mcqContainer = document.getElementById('mcq-options-container');
+            let essayContainer = document.getElementById('essay-options-container');
+            if (type === 'mcq') {
+                mcqContainer.style.display = 'block';
+                essayContainer.style.display = 'none';
+            } else {
+                mcqContainer.style.display = 'none';
+                essayContainer.style.display = 'block';
+            }
         }
 
         async function addQuestion() {
             let text = document.getElementById('q-text').value.trim();
             let type = document.getElementById('q-type').value;
-            let modelAnswer = document.getElementById('q-model').value.trim();
             let points = parseInt(document.getElementById('q-points').value) || 5;
 
-            if (!text || !modelAnswer) {
-                alert(adminLang === 'ar' ? "يرجى إدخال نص السؤال والإجابة النموذجية!" : "Please enter question text and model answer!");
+            if (!text) {
+                alert("يرجى إدخال نص السؤال!");
                 return;
             }
 
+            let modelAnswer = "";
             let rawOptions = [];
+            let essayHintText = "";
+
             if (type === 'mcq') {
+                modelAnswer = document.getElementById('q-model').value.trim();
+                if (!modelAnswer) {
+                    alert("يرجى إدخال الإجابة النموذجية للسؤال الاختياري!");
+                    return;
+                }
                 for (let i = 0; i < 4; i++) {
                     let optVal = document.getElementById('opt-' + i).value.trim();
                     if (optVal) rawOptions.push(optVal);
                 }
                 if (rawOptions.length < 2) {
-                    alert(adminLang === 'ar' ? "يرجى إدخال خيارين على الأقل." : "Please enter at least two options.");
+                    alert("يرجى إدخال خيارين على الأقل.");
                     return;
                 }
-            }
+                await saveNewQuestionToDB(text, type, rawOptions, modelAnswer, points, "", null, null);
+            } else {
+                essayHintText = document.getElementById('essay-hint-text').value.trim();
+                let hintFileInput = document.getElementById('essay-hint-file');
+                let qFileInput = document.getElementById('essay-question-file');
 
-            let newQ = { text, type, rawOptions, modelAnswer, points, createdAt: Date.now() };
+                let qFileBase64 = null;
+                let hintFileBase64 = null;
+
+                let processFiles = async () => {
+                    if (qFileInput && qFileInput.files && qFileInput.files[0]) {
+                        qFileBase64 = await readFileAsDataURL(qFileInput.files[0]);
+                    }
+                    if (hintFileInput && hintFileInput.files && hintFileInput.files[0]) {
+                        hintFileBase64 = await readFileAsDataURL(hintFileInput.files[0]);
+                    }
+                    await saveNewQuestionToDB(text, type, rawOptions, modelAnswer, points, essayHintText, hintFileBase64, qFileBase64);
+                };
+
+                processFiles();
+            }
+        }
+
+        function readFileAsDataURL(file) {
+            return new Promise((resolve, reject) => {
+                let reader = new FileReader();
+                reader.onload = e => resolve(e.target.result);
+                reader.onerror = err => reject(err);
+                reader.readAsDataURL(file);
+            });
+        }
+
+        async function saveNewQuestionToDB(text, type, rawOptions, modelAnswer, points, essayHintText, hintFileBase64, questionFileBase64) {
+            let newQ = { 
+                text, 
+                type, 
+                rawOptions, 
+                modelAnswer, 
+                points, 
+                essayHintText, 
+                hintFileBase64, 
+                questionFileBase64,
+                createdAt: Date.now() 
+            };
 
             try {
                 questions.push(newQ);
                 await setDoc(doc(db, "examData", "questionsBank"), { list: questions });
-                
-                alert(adminLang === 'ar' ? "تمت إضافة السؤال أونلاين بنجاح!" : "Question added online successfully!");
+                alert("تمت إضافة السؤال بنجاح!");
                 
                 document.getElementById('q-text').value = "";
                 document.getElementById('q-model').value = "";
-                for (let i = 0; i < 4; i++) { document.getElementById('opt-' + i).value = ""; }
-                
+                document.getElementById('essay-hint-text').value = "";
+                let f1 = document.getElementById('essay-hint-file');
+                let f2 = document.getElementById('essay-question-file');
+                if(f1) f1.value = "";
+                if(f2) f2.value = "";
+
                 renderQuestionsList();
             } catch (error) {
-                console.error("Error adding question: ", error);
-                alert("حدث خطأ أثناء حفظ السؤال بالسيرفر.");
+                console.error("Error saving question: ", error);
             }
         }
 
@@ -376,26 +456,24 @@
             if(!listContainer) return;
             listContainer.innerHTML = "";
             if (questions.length === 0) {
-                listContainer.innerHTML = '<p class="text-xs text-gray-400">' + adminTranslations[adminLang].noQText + '</p>';
+                listContainer.innerHTML = '<p class="text-xs text-gray-400">لا توجد أسئلة مضافة حتى الآن.</p>';
                 return;
             }
             questions.forEach((q, idx) => {
                 let item = document.createElement('div');
                 item.className = "flex justify-between items-center bg-black/30 p-2.5 rounded-lg text-xs";
                 let info = document.createElement('span');
-                info.innerText = (idx + 1) + ". " + q.text + " (" + q.points + " pts)";
+                info.innerText = (idx + 1) + ". [" + q.type.toUpperCase() + "] " + q.text + " (" + q.points + " pts)";
                 item.appendChild(info);
                 let delBtn = document.createElement('button');
                 delBtn.className = "bg-red-600/50 hover:bg-red-600 px-2.5 py-1 rounded text-white transition";
-                delBtn.innerText = adminLang === 'ar' ? "حذف" : "Delete";
+                delBtn.innerText = "حذف";
                 delBtn.onclick = async function() {
                     questions.splice(idx, 1);
                     try {
                         await setDoc(doc(db, "examData", "questionsBank"), { list: questions });
                         renderQuestionsList();
-                    } catch(err) {
-                        console.error(err);
-                    }
+                    } catch(err) { console.error(err); }
                 };
                 item.appendChild(delBtn);
                 listContainer.appendChild(item);
@@ -408,7 +486,7 @@
             container.innerHTML = "";
             let subKeys = Object.keys(submissions);
             if (subKeys.length === 0) {
-                container.innerHTML = '<p class="text-xs text-gray-400">' + adminTranslations[adminLang].noSubText + '</p>';
+                container.innerHTML = '<p class="text-xs text-gray-400">لا توجد تسليمات من الطلاب حتى الآن.</p>';
                 return;
             }
             subKeys.forEach(sId => {
@@ -417,11 +495,11 @@
                 item.className = "flex justify-between items-center bg-black/30 p-3 rounded-lg text-xs";
                 let info = document.createElement('div');
                 info.innerHTML = '<p class="font-bold text-sm text-purple-200">' + sub.studentName + ' <span class="text-xs text-gray-400">(ID: ' + sId + ')</span></p>' +
-                                 '<p class="text-gray-300">Score: <span class="text-yellow-400 font-bold">' + sub.autoScore + '</span> | Status: <span class="text-purple-300">' + sub.status + '</span></p>';
+                                 '<p class="text-gray-300">Score: <span class="text-yellow-400 font-bold">' + sub.finalScore + '</span> | Status: <span class="text-purple-300">' + sub.status + '</span></p>';
                 item.appendChild(info);
                 let reviewBtn = document.createElement('button');
                 reviewBtn.className = "bg-purple-600 hover:bg-purple-500 px-3 py-1.5 rounded text-white font-bold transition";
-                reviewBtn.innerText = adminLang === 'ar' ? "مراجعة وتصحيح" : "Review & Grade";
+                reviewBtn.innerText = "مراجعة تفصيلية والـ AI";
                 reviewBtn.onclick = function() { openGradingModal(sId); };
                 item.appendChild(reviewBtn);
                 container.appendChild(item);
@@ -434,7 +512,7 @@
             container.innerHTML = "";
             let studentKeys = Object.keys(studentsDB);
             if (studentKeys.length === 0) {
-                container.innerHTML = '<p class="text-xs text-gray-400">' + adminTranslations[adminLang].noStudentsText + '</p>';
+                container.innerHTML = '<p class="text-xs text-gray-400">لا يوجد طلاب مسجلين حتى الآن.</p>';
                 return;
             }
             studentKeys.forEach(sId => {
@@ -443,7 +521,7 @@
                 item.className = "flex justify-between items-center bg-black/30 p-2.5 rounded-lg text-xs";
                 let info = document.createElement('span');
                 let studentName = (typeof studentData === 'object' && studentData.name) ? studentData.name : studentData;
-                info.innerText = (adminLang === 'ar' ? "الطالب: " : "Student: ") + studentName + " | (ID: " + sId + ")";
+                info.innerText = "الطالب: " + studentName + " | (ID: " + sId + ")";
                 info.className = "text-purple-200 font-bold";
                 item.appendChild(info);
                 container.appendChild(item);
@@ -455,17 +533,27 @@
             let sub = submissions[sId];
             document.getElementById('modal-student-title').innerText = "Review: " + sub.studentName + " (ID: " + sId + ")";
             document.getElementById('modal-final-score').value = sub.finalScore;
-            document.getElementById('modal-teacher-notes').value = sub.teacherNotes || "";
+            document.getElementById('ai-status-text').innerText = sub.aiEvaluated ? "تم التصحيح ورصد الدرجة تلقائياً" : "جاهز للتصحيح التلقائي";
 
+            renderModalAnswers(sub);
+            document.getElementById('grading-modal').classList.remove('hidden');
+            document.getElementById('grading-modal').classList.add('flex');
+        }
+
+        function renderModalAnswers(sub) {
             let ansContainer = document.getElementById('modal-answers-container');
             ansContainer.innerHTML = "";
             questions.forEach((q, qIdx) => {
                 let ansObj = sub.answers[qIdx] || { answer: "No answer", image: null };
                 let box = document.createElement('div');
-                box.className = "bg-black/30 p-3 rounded-lg space-y-1";
-                box.innerHTML = '<p class="font-bold text-purple-200">Q' + (qIdx + 1) + ': ' + q.text + '</p>' +
-                              '<p class="text-gray-300">Student Answer: <span class="text-yellow-300">' + ansObj.answer + '</span></p>' +
-                              '<p class="text-gray-300">Model Answer: <span class="text-green-300">' + q.modelAnswer + '</span></p>';
+                box.className = "bg-black/30 p-3 rounded-lg space-y-1 border border-white/10";
+                
+                let evalHtml = ansObj.aiEvaluation ? '<div class="bg-purple-950/60 p-2 rounded mt-1 border border-purple-500/40 text-purple-200"><p class="font-bold text-yellow-300">تقرير الذكاء الاصطناعي (Points: ' + ansObj.aiAwardedPoints + '/' + q.points + '):</p><p class="text-gray-200 mt-1">' + ansObj.aiEvaluation + '</p></div>' : '<p class="text-gray-400 mt-1">لم يتم التصحيح بعد.</p>';
+
+                box.innerHTML = '<p class="font-bold text-purple-200">Q' + (qIdx + 1) + ' [' + q.type.toUpperCase() + ']: ' + q.text + '</p>' +
+                              '<p class="text-gray-300">إجابة الطالب النصية: <span class="text-yellow-300">' + (ansObj.answer || 'None') + '</span></p>' +
+                              evalHtml;
+                
                 if (ansObj.image) {
                     let img = document.createElement('img');
                     img.src = ansObj.image;
@@ -474,37 +562,117 @@
                 }
                 ansContainer.appendChild(box);
             });
-            document.getElementById('grading-modal').classList.remove('hidden');
-            document.getElementById('grading-modal').classList.add('flex');
         }
+
+        // دالة تصحيح الـ AI ورصد الدرجة وإرسال التعليق المفصل للطالب فوراً
+        window.runAIGrading = async function() {
+            if (!openaiApiKey) {
+                alert("يرجى إدخال مفتاح OpenAI API Key أولاً في إعدادات الصفحة بالأعلى!");
+                return;
+            }
+            if (!activeGradingStudentID) return;
+
+            let sub = submissions[activeGradingStudentID];
+            document.getElementById('ai-status-text').innerText = "جاري التصحيح المفصل ورصد الدرجة تلقائياً...";
+
+            let totalCalculatedScore = 0;
+
+            for (let qIdx = 0; qIdx < questions.length; qIdx++) {
+                let q = questions[qIdx];
+                let ansObj = sub.answers[qIdx];
+
+                if (q.type === 'mcq') {
+                    let studentFirstChar = (ansObj?.answer || "").trim().charAt(0);
+                    let modelFirstChar = (q.modelAnswer || "").trim().charAt(0);
+                    if (studentFirstChar === modelFirstChar && modelFirstChar !== "") {
+                        totalCalculatedScore += (q.points || 5);
+                        ansObj.aiAwardedPoints = q.points || 5;
+                        ansObj.aiEvaluation = "تم تصحيح السؤال الاختياري بنجاح ومطابقته للإجابة النموذجية.";
+                    } else {
+                        ansObj.aiAwardedPoints = 0;
+                        ansObj.aiEvaluation = "إجابة خاطئة لم تتطابق مع الاختيار النموذجي.";
+                    }
+                } else if (q.type === 'essay') {
+                    let promptText = `You are an expert AI exam grader. Evaluate the student's answer for the essay question based on the instructor's hint/model answer and question context. Provide a detailed explanation in Arabic of why this grade was given and how it compares to the model answer.
+Question Text: "${q.text}"
+Instructor's Hint/Model Answer Text: "${q.essayHintText || 'No text hint provided'}"
+Student's Answer Text: "${ansObj?.answer || 'No text answer'}"
+Total Question Points: ${q.points || 5}
+
+Provide your evaluation in the following strict JSON format without markdown ticks:
+{
+  "awardedPoints": [number between 0 and total points],
+  "feedback": "[Detailed Arabic explanation of the evaluation, what was correct, what was missing, and why this score was awarded based on the hint]"
+}`;
+
+                    let contentMessages = [{ type: "text", text: promptText }];
+
+                    if (q.questionFileBase64) {
+                        contentMessages.push({ type: "image_url", image_url: { url: q.questionFileBase64 } });
+                    }
+                    if (q.hintFileBase64) {
+                        contentMessages.push({ type: "image_url", image_url: { url: q.hintFileBase64 } });
+                    }
+                    if (ansObj?.image) {
+                        contentMessages.push({ type: "image_url", image_url: { url: ansObj.image } });
+                    }
+
+                    try {
+                        let response = await fetch("https://api.openai.com/v1/chat/completions", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                                "Authorization": "Bearer " + openaiApiKey
+                            },
+                            body: JSON.stringify({
+                                model: "gpt-4o",
+                                messages: [{ role: "user", content: contentMessages }],
+                                max_tokens: 600
+                            })
+                        });
+
+                        let data = await response.json();
+                        if (data.choices && data.choices[0]) {
+                            let resultStr = data.choices[0].message.content.trim();
+                            resultStr = resultStr.replace(/```json/g, '').replace(/```/g, '').trim();
+                            let aiResult = JSON.parse(resultStr);
+                            
+                            ansObj.aiAwardedPoints = aiResult.awardedPoints || 0;
+                            ansObj.aiEvaluation = aiResult.feedback || "تم التصحيح بناءً على مطابقة هينت الأستاذ.";
+                            totalCalculatedScore += ansObj.aiAwardedPoints;
+                        }
+                    } catch (err) {
+                        console.error("OpenAI Error:", err);
+                        ansObj.aiAwardedPoints = 0;
+                        ansObj.aiEvaluation = "حدث خطأ أثناء الاتصال بالذكاء الاصطناعي.";
+                    }
+                }
+            }
+
+            // رصد الدرجة أوتوماتيكياً للطالب وتغيير الحالة إلى "معتمد" فوراً
+            sub.autoScore = totalCalculatedScore;
+            sub.finalScore = totalCalculatedScore;
+            sub.aiEvaluated = true;
+            sub.graded = true;
+            sub.status = 'معتمد';
+            sub.teacherNotes = "تم رصد وتصحيح الامتحان تلقائياً ومفصلاً بواسطة الذكاء الاصطناعي.";
+
+            document.getElementById('modal-final-score').value = sub.finalScore;
+            document.getElementById('ai-status-text').innerText = "تم التصحيح ورصد الدرجة وإرسالها للطالب بنجاح!";
+            renderModalAnswers(sub);
+
+            await setDoc(doc(db, "examData", "submissions"), { list: submissions });
+            renderSubmissionsList();
+            alert("تم تصحيح الامتحان ورصد الدرجة النهائية للطالب أوتوماتيكياً بنجاح!");
+        };
 
         function closeModal() {
             document.getElementById('grading-modal').classList.remove('flex');
             document.getElementById('grading-modal').classList.add('hidden');
         }
 
-        async function saveStudentGrade() {
-            if (!activeGradingStudentID || !submissions[activeGradingStudentID]) return;
-            let newScore = parseFloat(document.getElementById('modal-final-score').value) || 0;
-            let notes = document.getElementById('modal-teacher-notes').value.trim();
-            submissions[activeGradingStudentID].finalScore = newScore;
-            submissions[activeGradingStudentID].teacherNotes = notes;
-            submissions[activeGradingStudentID].status = 'معتمد';
-            submissions[activeGradingStudentID].graded = true;
-            
-            try {
-                await setDoc(doc(db, "examData", "submissions"), { list: submissions });
-                alert("Grade saved successfully!");
-                closeModal();
-                renderSubmissionsList();
-            } catch(e) {
-                console.error(e);
-                alert("Error saving grade.");
-            }
-        }
-
         async function clearExamsOnly() {
-            if (confirm(adminLang === 'ar' ? "هل أنت متأكد من حذف الامتحانات والنتائج فقط؟" : "Are you sure you want to delete exams and results only?")) {
+            if (confirm("هل أنت متأكد من حذف الامتحانات والنتائج فقط؟")) {
                 try {
                     await setDoc(doc(db, "examData", "questionsBank"), { list: [] });
                     await setDoc(doc(db, "examData", "submissions"), { list: {} });
@@ -514,7 +682,7 @@
         }
 
         async function clearStudentsOnly() {
-            if (confirm(adminLang === 'ar' ? "هل أنت متأكد من حذف بيانات الطلاب فقط؟" : "Are you sure you want to delete student accounts only?")) {
+            if (confirm("هل أنت متأكد من حذف بيانات الطلاب فقط؟")) {
                 try {
                     await setDoc(doc(db, "examData", "studentsDB"), { list: {} });
                     location.reload();
@@ -522,14 +690,13 @@
             }
         }
 
-        // ربط الدوال بالنافذة لتصبح متاحة للأزرار مباشرة
         window.toggleAdminLanguage = toggleAdminLanguage;
         window.saveExamSettings = saveExamSettings;
         window.addQuestion = addQuestion;
         window.clearExamsOnly = clearExamsOnly;
         window.clearStudentsOnly = clearStudentsOnly;
         window.closeModal = closeModal;
-        window.saveStudentGrade = saveStudentGrade;
+        window.runAIGrading = window.runAIGrading;
         window.toggleQuestionType = toggleQuestionType;
     </script>
 </body>

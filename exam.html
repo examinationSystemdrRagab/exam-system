@@ -52,15 +52,14 @@
                 notAvailable: "الامتحان غير متاح حالياً، يرجى الانتظار لحين فتحه من قبل أستاذ المادة.",
                 submitBtn: "تسليم الإجابات وإنهاء الامتحان",
                 successAlert: "تم تسليم الامتحان بنجاح!",
-                gradedTitle: "تم تصحيح امتحانك واعتدامه من أستاذ المادة",
+                gradedTitle: "تم تصحيح امتحانك ورصد درجتك أوتوماتيكياً بواسطة الـ AI",
                 finalScoreText: "الدرجة النهـائية: ",
                 fromText: " من ",
-                teacherNotes: "ملاحظات الأستاذ: ",
-                noNotes: "لا توجد ملاحظات",
+                detailedFeedbackTitle: "التصحيح المفصل والتعليقات:",
                 pendingTitle: "تم تسليم إجاباتك بنجاح!",
-                pendingStatus: "جاري التصحيح بواسطة أستاذ المادة",
-                pendingSub: "يمكنك العودة لاحقاً لمتابعة النتيجة بعد اعتمادها.",
-                uploadImgLabel: "رفع صورة توضيحية للإجابة (اختياري):",
+                pendingStatus: "جاري التصحيح التلقائي بالذكاء الاصطناعي",
+                pendingSub: "يرجى الانتظار لحظات حتى يتم رصد الدرجة والتقييم المفصل.",
+                uploadImgLabel: "رفع صورة أو ملف PDF للإجابة المكتوبة بخط اليد:",
                 essayPlaceholder: "اكتب إجابتك النصية هنا..."
             },
             en: {
@@ -72,15 +71,14 @@
                 notAvailable: "The exam is currently closed. Please wait for the instructor to open it.",
                 submitBtn: "Submit Answers & Finish Exam",
                 successAlert: "Exam submitted successfully!",
-                gradedTitle: "Your exam has been graded and approved",
+                gradedTitle: "Your exam has been graded automatically by AI",
                 finalScoreText: "Final Score: ",
                 fromText: " out of ",
-                teacherNotes: "Instructor Notes: ",
-                noNotes: "No notes available",
+                detailedFeedbackTitle: "Detailed AI Feedback & Evaluation:",
                 pendingTitle: "Your answers have been submitted successfully!",
-                pendingStatus: "Under review by instructor",
-                pendingSub: "You can check back later for your final grade after approval.",
-                uploadImgLabel: "Upload supplementary image (Optional):",
+                pendingStatus: "Under automatic AI evaluation",
+                pendingSub: "Please wait a moment for your grade and detailed feedback.",
+                uploadImgLabel: "Upload handwriting image or PDF file for answer:",
                 essayPlaceholder: "Type your text answer here..."
             }
         };
@@ -120,32 +118,23 @@
 
         applyLanguage();
 
-        // جلب الإعدادات والأسئلة والتسليمات من Firebase مباشرة
         async function loadExamDataFromFirebase() {
             try {
-                // 1. جلب إعدادات الامتحان
                 let settingsSnap = await getDoc(doc(db, "settings", "exam"));
                 if (settingsSnap.exists()) {
                     examSettings = settingsSnap.data();
                 }
-
-                // 2. جلب الأسئلة
                 let questionsSnap = await getDoc(doc(db, "examData", "questionsBank"));
                 if (questionsSnap.exists() && questionsSnap.data().list) {
                     questions = questionsSnap.data().list;
                 }
-
-                // 3. جلب تسليمات الطلاب
                 let submissionsSnap = await getDoc(doc(db, "examData", "submissions"));
                 if (submissionsSnap.exists() && submissionsSnap.data().list) {
                     submissions = submissionsSnap.data().list;
                 }
-
             } catch (error) {
-                console.error("Error loading exam data from Firebase:", error);
+                console.error("Error loading exam data:", error);
             }
-
-            // بعد جلب البيانات، نبدأ عرض الصفحة وتشغيل المؤقت
             renderExamPage();
             initTimer();
         }
@@ -160,30 +149,49 @@
             if (submissions[studentID]) {
                 let sub = submissions[studentID];
                 let box = document.createElement('div');
-                box.className = "text-center py-10 space-y-4";
+                box.className = "text-center py-6 space-y-4";
 
                 if (sub.status === 'معتمد' || sub.graded) {
                     let totalPoints = questions.reduce((a, b) => a + (b.points || 5), 0);
                     
                     let icon = document.createElement('div');
-                    icon.className = "text-green-400 text-5xl";
+                    icon.className = "text-green-400 text-4xl";
                     icon.innerText = "✓";
                     box.appendChild(icon);
 
                     let title = document.createElement('h2');
-                    title.className = "text-2xl font-bold";
+                    title.className = "text-xl font-bold";
                     title.innerText = t.gradedTitle;
                     box.appendChild(title);
 
                     let scoreCard = document.createElement('div');
-                    scoreCard.className = "bg-black/30 p-4 rounded-xl inline-block border border-white/10";
-                    scoreCard.innerHTML = '<p class="text-lg">' + t.finalScoreText + '<span class="font-bold text-yellow-400 text-2xl">' + sub.finalScore + '</span>' + t.fromText + totalPoints + '</p>';
+                    scoreCard.className = "bg-black/30 p-3 rounded-xl inline-block border border-white/10";
+                    scoreCard.innerHTML = '<p class="text-md">' + t.finalScoreText + '<span class="font-bold text-yellow-400 text-xl">' + sub.finalScore + '</span>' + t.fromText + totalPoints + '</p>';
                     box.appendChild(scoreCard);
 
-                    let notes = document.createElement('p');
-                    notes.className = "text-sm text-gray-400";
-                    notes.innerText = t.teacherNotes + (sub.teacherNotes || t.noNotes);
-                    box.appendChild(notes);
+                    // عرض تفاصيل التصحيح المفصل لكل سؤال للطالب
+                    let feedbackBox = document.createElement('div');
+                    feedbackBox.className = "text-right space-y-3 mt-4 bg-black/20 p-4 rounded-xl border border-white/10 text-xs";
+                    
+                    let fbTitle = document.createElement('h3');
+                    fbTitle.className = "font-bold text-purple-300 text-sm mb-2";
+                    fbTitle.innerText = t.detailedFeedbackTitle;
+                    feedbackBox.appendChild(fbTitle);
+
+                    questions.forEach((q, idx) => {
+                        let ansObj = sub.answers[idx] || {};
+                        let qDiv = document.createElement('div');
+                        qDiv.className = "bg-black/30 p-3 rounded-lg space-y-1 border border-white/10";
+                        qDiv.innerHTML = '<p class="font-bold text-purple-200">سؤال ' + (idx + 1) + ': ' + q.text + '</p>' +
+                                         '<p class="text-gray-300">إجابتك: <span class="text-yellow-300">' + (ansObj.answer || 'مرفق صورة') + '</span></p>' +
+                                         '<div class="bg-purple-950/50 p-2 rounded mt-1 border border-purple-500/30">' +
+                                         '<p class="font-bold text-green-300">درجة السؤال: ' + (ansObj.aiAwardedPoints || 0) + ' / ' + q.points + '</p>' +
+                                         '<p class="text-gray-200 mt-1"><b>تقرير الـ AI:</b> ' + (ansObj.aiEvaluation || 'قيد المعالجة') + '</p>' +
+                                         '</div>';
+                        feedbackBox.appendChild(qDiv);
+                    });
+
+                    box.appendChild(feedbackBox);
                 } else {
                     let spinner = document.createElement('div');
                     spinner.className = "animate-spin rounded-full h-12 w-12 border-b-2 border-purple-400 mx-auto";
@@ -193,13 +201,14 @@
                     title.className = "text-xl font-bold text-yellow-300";
                     title.innerText = t.pendingTitle;
                     box.appendChild(title);
+                    
                     let statusText = document.createElement('p');
-                    statusText.className = "text-gray-300";
-                    statusText.innerHTML = currentLang === 'ar' ? 'حالة الامتحان: <span class="text-yellow-400 font-bold">' + t.pendingStatus + '</span>' : 'Status: <span class="text-yellow-400 font-bold">' + t.pendingStatus + '</span>';
+                    statusText.className = "text-gray-300 text-sm";
+                    statusText.innerHTML = 'الحالة: <span class="text-yellow-400 font-bold">' + t.pendingStatus + '</span>';
                     box.appendChild(statusText);
 
                     let subText = document.createElement('p');
-                    subText.className = "text-sm text-gray-400";
+                    subText.className = "text-xs text-gray-400";
                     subText.innerText = t.pendingSub;
                     box.appendChild(subText);
                 }
@@ -239,8 +248,15 @@
 
                 let qTitle = document.createElement('label');
                 qTitle.className = "block font-bold text-purple-200";
-                qTitle.innerText = (index + 1) + ". " + q.text;
+                qTitle.innerText = (index + 1) + ". " + q.text + " (" + q.points + " pts)";
                 qCard.appendChild(qTitle);
+
+                if (q.questionFileBase64) {
+                    let qImg = document.createElement('img');
+                    qImg.src = q.questionFileBase64;
+                    qImg.className = "max-h-48 mt-2 rounded border border-white/20";
+                    qCard.appendChild(qImg);
+                }
 
                 if (q.type === 'mcq' && q.rawOptions && q.rawOptions.length > 0) {
                     q.rawOptions.forEach((optText, optIdx) => {
@@ -269,7 +285,6 @@
                     let textarea = document.createElement('textarea');
                     textarea.name = "q_" + index;
                     textarea.rows = 3;
-                    textarea.required = true;
                     textarea.className = "w-full bg-black/40 border border-white/20 rounded-lg p-3 text-white focus:outline-none focus:border-purple-500";
                     textarea.placeholder = t.essayPlaceholder;
                     qCard.appendChild(textarea);
@@ -286,7 +301,7 @@
                 let fileInput = document.createElement('input');
                 fileInput.type = "file";
                 fileInput.id = "file_" + index;
-                fileInput.accept = "image/*";
+                fileInput.accept = "image/*,.pdf";
                 fileInput.className = "text-xs text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-500 cursor-pointer";
                 fileBox.appendChild(fileInput);
 
@@ -305,6 +320,10 @@
 
         function submitExam(e) {
             e.preventDefault();
+            triggerAutomaticSubmission();
+        }
+
+        window.triggerAutomaticSubmission = function() {
             let studentAnswers = {};
             let totalQ = questions.length;
 
@@ -340,58 +359,51 @@
             let currentProcessed = Object.keys(answersObj).length;
 
             if (currentProcessed === totalQ) {
-                let initialScore = 0;
-                questions.forEach((q, idx) => {
-                    let studentAnsObj = answersObj[idx]?.answer || "";
-                    let modelAns = (q.modelAnswer || "").trim().toLowerCase();
-
-                    let studentFirstChar = studentAnsObj.trim().charAt(0); 
-                    let modelFirstChar = modelAns.charAt(0);
-
-                    if (q.type === 'mcq' && studentFirstChar === modelFirstChar && modelFirstChar !== "") {
-                        initialScore += (q.points || 5);
-                    } else if (q.type === 'essay' && studentAnsObj.toLowerCase().includes(modelAns) && modelAns !== "") {
-                        initialScore += (q.points || 5);
-                    }
-                });
-
                 submissions[studentID] = {
                     studentId: studentID,
                     studentName: studentName,
                     answers: answersObj,
-                    autoScore: initialScore,
-                    finalScore: initialScore,
-                    status: currentLang === 'ar' ? 'قيد المراجعة' : 'Under Review',
+                    autoScore: 0,
+                    finalScore: 0,
+                    status: 'قيد المراجعة بالـ AI',
                     graded: false,
                     teacherNotes: ''
                 };
 
                 try {
-                    // حفظ إجابة الطالب في Firebase بشكل دائم
                     await setDoc(doc(db, "examData", "submissions"), { list: submissions });
                     alert(translations[currentLang].successAlert);
                     renderExamPage();
                 } catch(error) {
                     console.error("Error submitting exam:", error);
-                    alert("حدث خطأ أثناء إرسال الامتحان للسيرفر.");
                 }
             }
         }
 
-        // إعداد المؤقت بدقة بحيث يعتمد الوقت الجديد من إعدادات الأستاذ فوراً
-        // إعداد المؤقت بحيث يبدأ دائماً من المدة الكاملة المحددة عند كل تحديث (Refresh) للصفحة
         function initTimer() {
             let durationMinutes = parseInt(examSettings.duration) || 10;
             let totalSeconds = durationMinutes * 60;
 
-            // مسح أي وقت قديم مخزن لضمان بدء العد من جديد دائماً عند تحديث الصفحة
             localStorage.removeItem('examRemainingSeconds');
             localStorage.removeItem('lastExamDuration');
 
             let timerInterval = setInterval(() => {
                 if (totalSeconds <= 0) {
                     clearInterval(timerInterval);
-                    alert(currentLang === 'ar' ? "انتهى وقت الامتحان!" : "Exam time ended!");
+                    alert("انتهى وقت الامتحان! سيتم قفل الامتحان وتسليم إجاباتك أوتوماتيكياً الآن.");
+                    
+                    // 1. تسليم الامتحان أوتوماتيكياً
+                    window.triggerAutomaticSubmission();
+                    
+                    // 2. إخفاء نموذج الأسئلة فوراً وقفل الصفحة لمنع أي حل إضافي
+                    let form = document.getElementById('submit-form');
+                    if(form) form.innerHTML = '<div class="text-center py-10 text-red-400 font-bold text-lg">انتهى وقت الامتحان وتم قفل الصفحة بنجاح!</div>';
+
+                    // 3. إعادة تحميل الصفحة بعد ثوانٍ بسيطة لتظهر صفحة الانتظار والنتيجة
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 2000);
+
                     return;
                 }
                 totalSeconds--;
