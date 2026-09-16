@@ -301,52 +301,69 @@ async function callAI(content,apiKey){
             window.triggerAutomaticSubmission();
         }
         window.triggerAutomaticSubmission = async function() {
-            let container = document.getElementById('exam-container');
-            container.innerHTML = `
-                <div class="text-center py-10 space-y-4">
-                    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-400 mx-auto"></div>
-                    <h2 class="text-xl font-bold text-yellow-300">جاري تصحيح الامتحان بالذكاء الاصطناعي...</h2>
-                    <p class="text-xs text-gray-400">يرجى الانتظار لحظات حتى تظهر نتيجتك النهائية.</p>
-                </div>
-            `;
-            let studentAnswers = {};
-            let totalQ = questions.length;
-            let openaiApiKey = localStorage.getItem('openaiApiKey') || '';
-            let processedCount = 0;
-            questions.forEach((q, index) => {
-                let ans = "";
-                if (q.type === 'mcq') {
-                    let selected = document.querySelector('input[name="q_' + index + '"]:checked');
-                    ans = selected ? selected.value : "";
-                } else {
-                    let textareaElem = document.querySelector('textarea[name="q_' + index + '"]');
-                    ans = textareaElem ? textareaElem.value : "";
-                }
-                let fileInput = document.getElementById('file_' + index);
-                if(fileInput&&fileInput.files&&fileInput.files[0]){
-                    let file=fileInput.files[0];
-                    let ok=["image/png","image/jpeg","image/webp","application/pdf"].includes(file.type);
-                    if(!ok){
-                        alert(currentLang==="ar"?"صيغة الملف غير مدعومة. استخدم JPG أو PNG أو WEBP أو PDF.":"Unsupported file type. Use JPG, PNG, WEBP or PDF.");
-                        renderExamPage();
-                        return;
-                    }
+    let studentAnswers = {};
+    let totalQ = questions.length;
+    let openaiApiKey = localStorage.getItem('openaiApiKey') || '';
+
+    for(let index=0; index<questions.length; index++){
+        let q=questions[index];
+        let ans="";
+
+        if(q.type==='mcq'){
+            let selected=document.querySelector('input[name="q_'+index+'"]:checked');
+            ans=selected?selected.value:"";
+        }else{
+            let textareaElem=document.querySelector('textarea[name="q_'+index+'"]');
+            ans=textareaElem?textareaElem.value:"";
+        }
+
+        let fileInput=document.getElementById('file_'+index);
+
+        if(fileInput&&fileInput.files&&fileInput.files[0]){
+            let file=fileInput.files[0];
+            let ok=["image/png","image/jpeg","image/webp","application/pdf"].includes(file.type);
+
+            if(!ok){
+                alert(currentLang==="ar"?"صيغة الملف غير مدعومة. استخدم JPG أو PNG أو WEBP أو PDF.":"Unsupported file type. Use JPG, PNG, WEBP or PDF.");
+                return;
+            }
+
+            try{
+                let imageData=await new Promise((resolve,reject)=>{
                     let reader=new FileReader();
-                    reader.onload=function(uploadEvent){
-                        studentAnswers[index]={answer:ans,image:uploadEvent.target.result};
-                        processGrading(studentAnswers,totalQ,openaiApiKey,++processedCount);
-                    };
-                    reader.onerror=function(){
-                        alert(currentLang==="ar"?"تعذر قراءة الملف المرفوع.":"Could not read uploaded file.");
-                        renderExamPage();
-                    };
+                    reader.onload=e=>resolve(e.target.result);
+                    reader.onerror=()=>reject(new Error("Could not read uploaded file"));
                     reader.readAsDataURL(file);
-                } else {
-                    studentAnswers[index] = { answer: ans, image: null };
-                    processGrading(studentAnswers, totalQ, openaiApiKey, ++processedCount);
-                }
-            });
-        };
+                });
+
+                studentAnswers[index]={
+                    answer:ans,
+                    image:imageData
+                };
+            }catch(err){
+                alert(currentLang==="ar"?"تعذر قراءة الملف المرفوع.":"Could not read uploaded file.");
+                return;
+            }
+        }else{
+            studentAnswers[index]={
+                answer:ans,
+                image:null
+            };
+        }
+    }
+
+    let container=document.getElementById('exam-container');
+
+    container.innerHTML=`
+        <div class="text-center py-10 space-y-4">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-400 mx-auto"></div>
+            <h2 class="text-xl font-bold text-yellow-300">جاري تصحيح الامتحان بالذكاء الاصطناعي...</h2>
+            <p class="text-xs text-gray-400">يرجى الانتظار لحظات حتى تظهر نتيجتك النهائية.</p>
+        </div>
+    `;
+
+    await processGrading(studentAnswers,totalQ,openaiApiKey,totalQ);
+};
         async function processGrading(answersObj, totalQ, openaiApiKey, count) {
             if (count < totalQ) return;
             let totalCalculatedScore = 0;
@@ -365,6 +382,30 @@ async function callAI(content,apiKey){
                         ansObj.aiEvaluation = currentLang === 'ar' ? "إجابة خاطئة لم تتطابق مع الاختيار النموذجي." : "Incorrect answer, did not match model choice.";
                     }
                 } else if (q.type === 'essay') {
+                    let studentAnswer = (ansObj?.answer || "").trim().toLowerCase();
+                    let dontKnowAnswers = [
+                        "معرفش",
+                        "مش عارف",
+                        "مش عارفة",
+                        "لا أعرف",
+                        "لا اعرف",
+                        "لا أعلم",
+                        "لا اعلم",
+                        "مش عارف الإجابة",
+                        "مش عارف الاجابة",
+                        "i don't know",
+                        "i dont know",
+                        "don't know",
+                        "dont know",
+                        "idk",
+                        "no idea",
+                        "unknown"
+                    ];
+                    if (!ansObj?.image && dontKnowAnswers.includes(studentAnswer)) {
+                        ansObj.aiAwardedPoints = 0;
+                        ansObj.aiEvaluation = "The student stated that they do not know the answer. No answer was provided for grading.";
+                        continue;
+                    }
                     if (!openaiApiKey) {
                         ansObj.aiAwardedPoints = 0;
                         ansObj.aiEvaluation = currentLang === 'ar' ? "لم يتم إدخال مفتاح الـ AI، بانتظار المراجعة." : "API key missing.";
@@ -375,41 +416,94 @@ async function callAI(content,apiKey){
                         : 'Evaluate the student answer (provided in image or text) by comparing it accurately with the instructor hint. Award points based on correctness.';
                     let promptText = `You are an expert exam grader with strong OCR and handwriting-reading ability.
 
-The student answer image is the PRIMARY SOURCE for grading. You MUST inspect the actual pixels of the attached student-answer image before deciding the score.
+The student's uploaded answer image is the PRIMARY SOURCE for grading.
 
-The student may use handwritten Arabic or English, numbers, mathematical equations, symbols, diagrams, tables, or mixed handwriting.
-Carefully read the handwriting from the image, even if it is not perfectly neat.
-Do NOT say the image is unreadable unless the writing is genuinely impossible to distinguish after carefully examining the image.
+If a student answer image is attached to this request, you MUST inspect the actual image content and read the student's handwriting before assigning any score.
+
+The image is NOT decorative and must NOT be ignored.
+
+Do not say that no answer was provided if a student answer image is attached.
+
+The student may use handwritten Arabic or English, numbers, mathematical equations, calculations, or diagrams.
+Carefully read the handwriting from the image before grading.
+Do NOT say the image is unreadable unless the writing is genuinely impossible to read.
 Do NOT rely only on the typed Student Text Answer field.
 
-First, transcribe what you can read from the student's image as accurately as possible. Preserve equations, numbers, and important symbols.
-Then compare that transcription and the visible work in the image with the question and instructor hint/model answer.
+First, carefully read and transcribe what you can understand from the student's image.
+Then compare the student's actual answer and reasoning with the instructor's answer or hint.
 
 Question:
 ${q.text}
 
 Instructor Hint / Model Answer:
-${q.essayHintText || 'Use the attached instructor hint file/image.'}
+${q.essayHintText || 'Use the attached instructor hint image/file.'}
 
 Student Text Answer:
-${ansObj?.answer || 'No typed answer. The actual answer is attached as a student image.'}
+${ansObj?.answer || 'No typed answer. The actual answer may be in the attached image.'}
 
 Maximum Points:
 ${q.points || 5}
 
-Grading rules:
-- Give credit for correct reasoning even when wording differs from the model answer.
-- For mathematics, inspect the calculations and final result carefully.
-- For diagrams, inspect labels and relationships visible in the image.
-- Do not give 0 merely because the answer is handwritten.
-- If only part of the answer is readable, grade the readable part fairly and explain the limitation.
-- Give 0 for unreadable content only when the image truly cannot be interpreted.
+GRADING RULES:
 
-Return the structured result with the student's transcription, awarded points, and clear feedback.`;
-                    let contentMessages=[{type:"input_text",text:promptText}];
-                    addAIFile(contentMessages,q.questionFileBase64,"question");
-                    addAIFile(contentMessages,q.hintFileBase64,"instructor-hint");
-                    addAIFile(contentMessages,ansObj?.image,"student-answer");
+1. Carefully understand the instructor's model answer or hint before grading.
+2. Carefully inspect the student's actual answer, including the uploaded image when available.
+3. Compare the student's answer directly with the instructor's answer or hint.
+4. Check the important concepts, steps, reasoning, calculations, and conclusions required by the instructor.
+5. Give credit for correct reasoning even when the wording is different.
+6. Do not require the exact same words as the instructor.
+7. Give partial credit when the answer is partially correct.
+8. Deduct points for incorrect, missing, or unsupported parts.
+9. Do NOT give points simply because the student wrote something.
+10. Do NOT give the full score unless the student's answer actually satisfies the instructor's requirements.
+11. Do not assume information that the student did not provide.
+12. If the student says they do not know the answer or provides no meaningful answer, award 0 points.
+13. If the answer is handwritten, read the handwriting carefully from the image before grading.
+14. For mathematical or scientific answers, inspect the student's calculations and final result carefully.
+15. Explain what was correct, what was wrong or missing, and why the awarded score was given.
+16. The final awardedPoints must be between 0 and the maximum points.
+
+Return ONLY valid JSON with exactly these fields:
+{
+  "studentTranscription": "What you can accurately read from the student's answer image, or an empty string if there is no image.",
+  "awardedPoints": number,
+  "feedback": "Explain what was correct, what was wrong or missing, and why this score was awarded."
+}`;
+                    let contentMessages=[
+    {
+        type:"input_text",
+        text:promptText
+    }
+];
+
+addAIFile(contentMessages,q.questionFileBase64,"question");
+addAIFile(contentMessages,q.hintFileBase64,"instructor-hint");
+
+if(ansObj?.image){
+    contentMessages.push({
+        type:"input_text",
+        text:"IMPORTANT: The next attached image is the STUDENT'S ACTUAL ANSWER. You MUST inspect and read this image before grading."
+    });
+
+    if(ansObj.image.startsWith("data:image/")){
+        contentMessages.push({
+            type:"input_image",
+            image_url:ansObj.image,
+            detail:"high"
+        });
+    }else if(ansObj.image.startsWith("data:application/pdf")){
+        contentMessages.push({
+            type:"input_file",
+            file_data:ansObj.image,
+            filename:"student-answer.pdf"
+        });
+    }
+}else{
+    contentMessages.push({
+        type:"input_text",
+        text:"IMPORTANT: No student answer image was uploaded."
+    });
+}
                     try{
                         let resultStr=await callAI(contentMessages,openaiApiKey);
                         let aiResult=JSON.parse(resultStr);
